@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
-import { Repository, FindOptionsWhere } from "typeorm";
+import { Repository, SelectQueryBuilder } from "typeorm";
+import { PagePaginationDto } from "../common/dto/page-pagination.dto";
+import { CommonService } from "../common/common.service";
+import { UserRole } from "../user/entities/user.entity";
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly commonService: CommonService,
   ) {
   }
 
@@ -24,10 +28,66 @@ export class UserService {
 
   /**
    * 모든 사용자 조회
+   * @param req 요청 객체
+   * @param dto 페이지 정보
    * @returns 사용자 목록
    */
-  async findAll(): Promise<User[]> {
-    return await this.userRepository.find();
+  async findAll(req: any, dto: PagePaginationDto) {
+    const { searchKey, searchValue } = dto;
+
+    const qb = this.userRepository.createQueryBuilder('users');
+
+    qb.leftJoinAndSelect('users.company', 'company')
+      .leftJoinAndSelect('users.workshop', 'workshop')
+      .where('users.deletedAt IS NULL');
+
+    qb.andWhere('users.role >= :userRole', {
+      userRole: req.user.role,
+    });
+
+    if (req.user.role === UserRole.SUPERADMIN) {
+      qb.andWhere('users.companyId = :companyId', {
+        companyId: req.user.companyId,
+      });
+    } else if (req.user.role === UserRole.ADMIN) {
+      qb.andWhere('users.workshopId = :workshopId', {
+        workshopId: req.user.workshopId,
+      });
+    } else if (req.user.role === UserRole.USER) {
+      qb.andWhere('users.id = :id', { id: req.user.id });
+    }
+
+    if (searchKey && searchValue) {
+      const tempWhiteList = [
+        'users.name',
+        'users.phone',
+        'company.name',
+        'workshop.name',
+      ];
+
+      if (tempWhiteList.includes(searchKey)) {
+        qb.andWhere(`${searchKey} LIKE :value`, {
+          value: `%${searchValue}%`,
+        });
+      } else {
+        throw new BadRequestException('잘못된 검색 키입니다.');
+      }
+    }
+
+    this.commonService.applyPagePaginationParamToQb(qb, dto);
+
+    qb.orderBy('users.role', 'ASC')
+      .addOrderBy('users.name', 'ASC')
+      .addOrderBy('users.id', 'DESC');
+
+    const users = await qb.getMany();
+    const total = await qb.getCount();
+
+    if (!users.length) {
+      throw new NotFoundException('일치하는 정보가 없습니다.');
+    }
+
+    return { data: users, total: total };
   }
 
   /**
