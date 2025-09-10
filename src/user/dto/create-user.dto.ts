@@ -1,22 +1,39 @@
-export class CreateUserDto {
-  // 이름
-  mbName: string;
-  // 비밀번호
-  mbPassword: string;
-  // 사번
-  mbId: string;
-  // 상위부서
-  // 부서
-  mb1: string;
-  // 직위
-  mb2: string;
-  // 직무
-  mb5: string;
-  // 연락처
-  mbTel: string;
-  // 연락처(폰)
-  mbHp: string;
-  // 이메일
-  mbEmail: string;
+import { IsNotEmpty, IsString, IsOptional, IsEmail } from 'class-validator';
 
+export class CreateUserDto {
+  @IsNotEmpty()
+  @IsString()
+  mbName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  mbPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  mbId: string;
+
+  @IsOptional()
+  @IsString()
+  mb1: string;
+
+  @IsOptional()
+  @IsString()
+  mb2: string;
+
+  @IsOptional()
+  @IsString()
+  mb5: string;
+
+  @IsOptional()
+  @IsString()
+  mbTel: string;
+
+  @IsOptional()
+  @IsString()
+  mbHp: string;
+
+  @IsOptional()
+  @IsEmail()
+  mbEmail: string;
 }
