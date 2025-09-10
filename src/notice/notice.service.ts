@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from "@nestjs/typeorm";
-import { Notice } from "./entities/notice.entity";
-import { Repository } from "typeorm";
-import { PagePaginationDto } from "../common/dto/page-pagination.dto";
+import {Injectable, NotFoundException} from '@nestjs/common';
+import {InjectRepository} from "@nestjs/typeorm";
+import {Notice} from "./entities/notice.entity";
+import {Repository} from "typeorm";
+import {PagePaginationDto} from "../common/dto/page-pagination.dto";
+import {CommonService} from "../common/common.service";
 
 @Injectable()
 export class NoticeService {
@@ -17,9 +18,9 @@ export class NoticeService {
    * @returns 공지사항 목록
    */
   async findAll(dto: PagePaginationDto): Promise<{ items: Notice[], total: number }> {
-    const { page, take } = dto;
+    const {page, take} = dto;
     const skip = (page - 1) * take;
-    
+
     const [items, total] = await this.noticeRepository.findAndCount({
       skip,
       take,
@@ -27,8 +28,8 @@ export class NoticeService {
         wrId: 'DESC'
       }
     });
-    
-    return { items, total };
+
+    return {items, total};
   }
 
   /**
@@ -37,12 +38,12 @@ export class NoticeService {
    * @returns 공지사항 정보
    */
   async findOne(id: number): Promise<Notice> {
-    const notice = await this.noticeRepository.findOneBy({ wrId: id });
-    
+    const notice = await this.noticeRepository.findOneBy({wrId: id});
+
     if (!notice) {
       throw new NotFoundException(`ID ${id}인 공지사항을 찾을 수 없습니다`);
     }
-    
+
     return notice;
   }
 
@@ -65,7 +66,7 @@ export class NoticeService {
   async update(id: number, updateData: Partial<Notice>): Promise<Notice> {
     const notice = await this.findOne(id);
     Object.assign(notice, updateData);
-    
+
     return await this.noticeRepository.save(notice);
   }
 
@@ -76,7 +77,7 @@ export class NoticeService {
    */
   async delete(id: number): Promise<Notice> {
     const notice = await this.findOne(id);
-    
+
     return await this.noticeRepository.remove(notice);
   }
 }

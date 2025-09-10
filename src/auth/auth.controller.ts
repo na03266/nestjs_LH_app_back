@@ -10,8 +10,6 @@ import {
 	UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserDto } from '../users/dto/create-user.dto';
-import { UserRole } from '../users/entities/user.entity';
 import { JwtAuthGuard } from './strategy/jwt.strategy';
 import { LocalAuthGuard } from './strategy/local.strategy';
 import { Private, Public } from './decorator/public.decorator';
@@ -20,26 +18,6 @@ import { Private, Public } from './decorator/public.decorator';
 @Controller('auth')
 export class AuthController {
 	constructor(private readonly authService: AuthService) {}
-
-	@Public()
-	@Post('user/register')
-	// authorization: Basic
-	registerUser(
-		@Headers('Authorization') token: string,
-		@Body() body: CreateUserDto,
-	) {
-		return this.authService.register(token, body);
-	}
-
-	@Public()
-	@Post('admin/register')
-	registerAdmin(
-		@Headers('Authorization') token: string,
-		@Body() body: CreateUserDto,
-	) {
-		body.role = UserRole.ADMIN;
-		return this.authService.register(token, body);
-	}
 
 	@Public()
 	@Post('login')

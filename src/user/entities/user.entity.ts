@@ -5,6 +5,7 @@ export class User {
   @PrimaryGeneratedColumn({ type: 'int', unsigned: true, name: 'mb_no' })
   mbNo: number;
 
+  // 사번
   @Index({ unique: true })
   @Column('varchar', { name: 'mb_id', length: 20, default: '' })
   mbId: string;
@@ -62,12 +63,15 @@ export class User {
   @Column('char', { name: 'mb_zip2', length: 3, default: '' })
   mbZip2: string;
 
+  // 기본 주소
   @Column('varchar', { name: 'mb_addr1', length: 500, default: '' })
   mbAddr1: string;
 
+  // 상세 주소
   @Column('varchar', { name: 'mb_addr2', length: 255, default: '' })
   mbAddr2: string;
 
+  // 참고 항목
   @Column('varchar', { name: 'mb_addr3', length: 255, default: '' })
   mbAddr3: string;
 
@@ -138,18 +142,22 @@ export class User {
   @Column('int', { name: 'mb_scrap_cnt', default: 0 })
   mbScrapCnt: number;
 
+  // 부서
   @Column('varchar', { name: 'mb_1', length: 255, default: '' })
   mb1: string;
 
+  //직급
   @Column('varchar', { name: 'mb_2', length: 255, default: '' })
   mb2: string;
 
+  //
   @Column('varchar', { name: 'mb_3', length: 10 }) // 원본은 date not null → zero-date 가능성 고려해 문자열로 수신
   mb3: string;
 
   @Column('varchar', { name: 'mb_4', length: 10 })
   mb4: string;
 
+  // 담당업무
   @Column('varchar', { name: 'mb_5', length: 255, default: '' })
   mb5: string;
 
