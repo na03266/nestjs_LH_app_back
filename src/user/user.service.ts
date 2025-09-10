@@ -6,7 +6,12 @@ import { User } from "./entities/user.entity";
 import { Repository, SelectQueryBuilder } from "typeorm";
 import { PagePaginationDto } from "../common/dto/page-pagination.dto";
 import { CommonService } from "../common/common.service";
-import { UserRole } from "../user/entities/user.entity";
+
+export enum UserRole {
+  USER = 1,
+  ADMIN = 2,
+  SUPERADMIN = 3
+}
 
 @Injectable()
 export class UserService {
@@ -41,20 +46,22 @@ export class UserService {
       .leftJoinAndSelect('users.workshop', 'workshop')
       .where('users.deletedAt IS NULL');
 
-    qb.andWhere('users.role >= :userRole', {
-      userRole: req.user.role,
-    });
+    if (req && req.user) {
+      qb.andWhere('users.role >= :userRole', {
+        userRole: req.user.role,
+      });
 
-    if (req.user.role === UserRole.SUPERADMIN) {
-      qb.andWhere('users.companyId = :companyId', {
-        companyId: req.user.companyId,
-      });
-    } else if (req.user.role === UserRole.ADMIN) {
-      qb.andWhere('users.workshopId = :workshopId', {
-        workshopId: req.user.workshopId,
-      });
-    } else if (req.user.role === UserRole.USER) {
-      qb.andWhere('users.id = :id', { id: req.user.id });
+      if (req.user.role === UserRole.SUPERADMIN) {
+        qb.andWhere('users.companyId = :companyId', {
+          companyId: req.user.companyId,
+        });
+      } else if (req.user.role === UserRole.ADMIN) {
+        qb.andWhere('users.workshopId = :workshopId', {
+          workshopId: req.user.workshopId,
+        });
+      } else if (req.user.role === UserRole.USER) {
+        qb.andWhere('users.id = :id', { id: req.user.id });
+      }
     }
 
     if (searchKey && searchValue) {
