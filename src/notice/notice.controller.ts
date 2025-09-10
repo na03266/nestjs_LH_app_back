@@ -1,10 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { NoticeService } from './notice.service';
 import { PagePaginationDto } from '../common/dto/page-pagination.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guard/auth.guard';
+import { UseGuards } from '@nestjs/common';
 
 @ApiTags('공지사항')
 @Controller('notice')
+@UseGuards(AuthGuard)
 export class NoticeController {
   constructor(private readonly noticeService: NoticeService) {}
 
