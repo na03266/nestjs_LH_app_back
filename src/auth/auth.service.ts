@@ -154,7 +154,7 @@ export class AuthService {
       },
       {
         secret: isRefreshToken ? refreshTokenSecret : accessTokenSecret,
-        expiresIn: isRefreshToken ? '2w' : '1y',
+        expiresIn: isRefreshToken ? '1y' : '2w',
       },
     );
   }

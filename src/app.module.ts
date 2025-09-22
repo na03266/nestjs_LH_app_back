@@ -7,9 +7,10 @@ import {AuthGuard} from "./auth/guard/auth.guard";
 import {RBACGuard} from "./auth/guard/rbac.guard";
 import {BearerTokenMiddleware} from "./auth/middleware/bearer-token.middleware";
 import {envVariables} from "./common/const/env.const";
-import { UserModule } from './user/user.module';
+import {UserModule} from './user/user.module';
 import {AuthModule} from "./auth/auth.module";
-import { NoticeModule } from './notice/notice.module';
+import {NoticeModule} from './notice/notice.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -42,12 +43,13 @@ import { NoticeModule } from './notice/notice.module';
         database: configService.get<string>(envVariables.dbDatabase),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-      }),
+      }), 
       inject: [ConfigService],
     }),
     UserModule,
     AuthModule,
     NoticeModule,
+    ChatModule,
   ],
   providers: [
     {
