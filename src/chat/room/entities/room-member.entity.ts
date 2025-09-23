@@ -1,10 +1,11 @@
 // src/chat/entities/room-member.entity.ts
-import {Column, CreateDateColumn, Entity, ManyToOne, PrimaryColumn,} from 'typeorm';
+import {Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn,} from 'typeorm';
 import {Room} from './room.entity';
 import {User} from "../../../user/entities/user.entity";
 import {MemberRole} from "../../entities/chat.entity";
 
 @Entity('room_members')
+@Index('idx_rm_user_left', ['userId', 'leftAt'])
 export class RoomMember {
   @PrimaryColumn('uuid', {name: 'room_id'})
   roomId: string;
@@ -16,9 +17,11 @@ export class RoomMember {
   privateTitle: string;
 
   @ManyToOne(() => Room, {onDelete: 'CASCADE', eager: false})
+  @JoinColumn({name: 'room_id'})
   room: Room;
 
   @ManyToOne(() => User, {onDelete: 'SET NULL', nullable: true, createForeignKeyConstraints: false})
+  @JoinColumn({name: 'user_id', referencedColumnName: 'mbNo'}) // ✅
   user: User;
 
   @Column({type: 'enum', enum: MemberRole, default: MemberRole.MEMBER})

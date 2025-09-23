@@ -4,7 +4,7 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  Index,
+  Index, JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
@@ -14,7 +14,7 @@ import {User} from "../../../user/entities/user.entity";
 import {MessageType} from "../../entities/chat.entity";
 
 @Entity('messages')
-@Index('idx_messages_room_id_id_desc', ['room', 'id'])
+@Index('idx_messages_room_id_id', ['room', 'id'])
 export class Message {
   @PrimaryGeneratedColumn({type: 'bigint'})
   id: string; // bigint → string

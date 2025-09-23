@@ -14,8 +14,8 @@ export class RoomController {
   }
 
   @Get()
-  findMyRooms() {
-    return this.roomService.findAll();
+  findMyRooms(@Request() req:any) {
+    return this.roomService.findMyRooms(req);
   }
 
   @Get(':id')
