@@ -30,6 +30,6 @@ export class RoomController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.roomService.remove(+id);
+    return this.roomService.remove(id);
   }
 }

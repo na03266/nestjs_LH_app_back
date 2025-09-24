@@ -194,14 +194,20 @@ export class RoomService {
   }
 
   findOne(id: number) {
+    // 채팅을 불러와서 보여주는 부분
     return `This action returns a #${id} room`;
   }
 
   update(id: number, updateRoomDto: UpdateRoomDto) {
+
     return `This action updates a #${id} room`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async remove(id: string) {
+    const room = await this.roomRepository.find({where: {id}});
+    if (!room) throw new NotFoundException('방을 찾을 수 없습니다.');
+
+    await this.roomRepository.softDelete({id});
+    return id;
   }
 }
