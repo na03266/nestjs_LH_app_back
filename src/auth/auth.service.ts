@@ -1,4 +1,4 @@
-import {BadRequestException, Injectable, UnauthorizedException,} from '@nestjs/common';
+import {BadRequestException, Inject, Injectable, UnauthorizedException,} from '@nestjs/common';
 import {Repository} from 'typeorm';
 import {InjectRepository} from '@nestjs/typeorm';
 import {ConfigService} from '@nestjs/config';
@@ -6,6 +6,7 @@ import {JwtService} from '@nestjs/jwt';
 import {envVariables} from '../common/const/env.const';
 import {mysql41PasswordVerify} from "./hash/hash";
 import {User} from "../user/entities/user.entity";
+import {Cache, CACHE_MANAGER} from "@nestjs/cache-manager";
 
 @Injectable()
 export class AuthService {
@@ -14,7 +15,22 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {
+  }
+
+  async tokenBlock(token: string) {
+
+    const payload = this.jwtService.decode(token);
+    const expiryDate = +new Date(payload['exp'] * 1000);
+    const now = +Date.now();
+
+    const differenceInSeconds = (expiryDate - now) / 1000;
+
+    await this.cacheManager.set(`BLOCK_TOKEN_${token}`, payload, Math.min(differenceInSeconds * 1000, 1));
+
+    return true;
   }
 
   parseBasicToken(rawToken: string) {
@@ -36,10 +52,10 @@ export class AuthService {
     if (tokenSplit.length !== 2) {
       throw new BadRequestException('토큰 포멧이 잘못되었습니다.');
     }
-    const [phone, password] = tokenSplit;
+    const [mbId, password] = tokenSplit;
 
     return {
-      phone,
+      mbId,
       password,
     };
   }
@@ -80,37 +96,6 @@ export class AuthService {
     }
   }
 
-  // async register(rawToken: string, createUserDto: CreateUserDto) {
-  // 	const { phone, password } = this.parseBasicToken(rawToken);
-  //
-  // 	const user = await this.userRepository.findOne({ where: { phone } });
-  //
-  // 	if (user) {
-  // 		throw new BadRequestException('이미 가입한 사용자 입니다.');
-  // 	}
-  //
-  // 	const hash = await bcrypt.hash(
-  // 		password,
-  // 		this.configService.getOrThrow<number>(envVariables.hashRounds),
-  // 	);
-  //
-  //
-  // 	const newUser = this.userRepository.create({
-  // 		phone,
-  // 		password: hash,
-  // 		name: createUserDto.name,
-  // 		role: createUserDto.role,
-  // 		companyId: createUserDto.companyId,
-  // 		workshopId: createUserDto.workshopId,
-  // 		icCardNumber: createUserDto.icCardNumber,
-  // 		isActivated: createUserDto.isActivated,
-  // 	});
-  //
-  // 	await this.userRepository.save(newUser);
-  //
-  // 	return this.userRepository.findOne({ where: { id: newUser.id } });
-  // }
-
   async authenticate(mbId: string, mbPassword: string) {
     const user = await this.userRepository.findOne({
       where: {mbId: mbId},
@@ -147,7 +132,7 @@ export class AuthService {
       envVariables.accessTokenSecret,
     );
 
-    return this.jwtService.sign(
+    return this.jwtService.signAsync(
       {
         sub: user.mbNo,
         type: isRefreshToken ? 'refresh' : 'access',
@@ -160,9 +145,8 @@ export class AuthService {
   }
 
   async login(rawToken: string) {
-    const {phone, password} = this.parseBasicToken(rawToken);
-    const parsedPhone = phone.replace(/-/g, '');
-    const user = await this.authenticate(parsedPhone, password);
+    const {mbId, password} = this.parseBasicToken(rawToken);
+    const user = await this.authenticate(mbId, password);
 
     return {
       refreshToken: this.issueToken(user, true),

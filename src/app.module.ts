@@ -27,9 +27,6 @@ import { ChatModule } from './chat/chat.module';
         HASH_ROUNDS: Joi.number().required(),
         ACCESS_TOKEN_SECRET: Joi.string().required(),
         REFRESH_TOKEN_SECRET: Joi.string().required(),
-        OLLAMA_BASE_URL: Joi.string().required(),
-        OLLAMA_MODEL: Joi.string().required(),
-        UNIBOX_TOKEN_CODE: Joi.string().required(),
       }),
     }),
     TypeOrmModule.forRootAsync({

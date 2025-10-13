@@ -193,12 +193,17 @@ export class RoomService {
     return {items};
   }
 
-  findOne(id: number) {
+  async findOne(id: string) {
     // 채팅을 불러와서 보여주는 부분
+    const room = await this.roomRepository.findOne({where:{id}});
+
+    if(!room) throw new NotFoundException('방을 찾을 수 없습니다.');
+
+
     return `This action returns a #${id} room`;
   }
 
-  update(id: number, updateRoomDto: UpdateRoomDto) {
+  update(id: string, updateRoomDto: UpdateRoomDto) {
 
     return `This action updates a #${id} room`;
   }
