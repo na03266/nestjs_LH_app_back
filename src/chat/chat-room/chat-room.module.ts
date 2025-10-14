@@ -1,8 +1,8 @@
 import {Module} from '@nestjs/common';
-import {RoomService} from './room.service';
-import {RoomController} from './room.controller';
+import {ChatRoomService} from './chat-room.service';
+import {ChatRoomController} from './chat-room.controller';
 import {TypeOrmModule} from "@nestjs/typeorm";
-import {Room} from "./entities/room.entity";
+import {Room} from "./entities/chat-room.entity";
 import {RoomMember} from "./entities/room-member.entity";
 import {User} from "../../user/entities/user.entity";
 import {RoomReadCursor} from "../cursor/entities/room-read-cursor.entity";
@@ -14,8 +14,8 @@ import {RoomReadCursor} from "../cursor/entities/room-read-cursor.entity";
       RoomReadCursor,
     ])
   ],
-  controllers: [RoomController],
-  providers: [RoomService],
+  controllers: [ChatRoomController],
+  providers: [ChatRoomService],
 })
-export class RoomModule {
+export class ChatRoomModule {
 }

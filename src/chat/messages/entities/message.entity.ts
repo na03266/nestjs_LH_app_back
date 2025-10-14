@@ -1,21 +1,17 @@
 // src/chat/entities/message.entity.ts
-import {
-  Column,
-  CreateDateColumn,
-  DeleteDateColumn,
-  Entity,
-  Index, JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn
-} from 'typeorm';
-import {Room} from "../../room/entities/room.entity";
+import {Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn} from 'typeorm';
+import {Room} from "../../room/entities/chat-room.entity";
 import {User} from "../../../user/entities/user.entity";
-import {MessageType} from "../../entities/chat.entity";
+import {BaseTable} from "../../../common/entity/base-table.entity";
+
+export enum MessageType { TEXT = 'text', ATTACHMENT = 'attachment', SYSTEM = 'system' }
+export enum FileKind { IMAGE = 'image', FILE = 'file' }
+export enum StorageKind { LOCAL = 'local', S3 = 's3' }
+export enum MemberRole  { ADMIN = 'admin', MEMBER = 'member' }
 
 @Entity('messages')
 @Index('idx_messages_room_id_id', ['room', 'id'])
-export class Message {
+export class Message extends BaseTable{
   @PrimaryGeneratedColumn({type: 'bigint'})
   id: string; // bigint → string
 
@@ -23,21 +19,11 @@ export class Message {
   room: Room;
 
   @ManyToOne(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})
-  user: User | null;
+  author: User | null;
 
   @Column({type: 'enum', enum: MessageType, default: MessageType.TEXT})
   type: MessageType;
 
   @Column({type: 'text', nullable: true})
   content: string | null;
-
-  @CreateDateColumn({name: 'created_at',})
-  createdAt: Date;
-
-  // 추후 개발용 수정,
-  @UpdateDateColumn({name: 'edited_at', nullable: true})
-  editedAt: Date | null;
-
-  @DeleteDateColumn({name: 'deleted_at', nullable: true})
-  deletedAt: Date | null;
 }

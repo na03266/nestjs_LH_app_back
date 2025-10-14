@@ -1,6 +1,6 @@
 // src/chat/entities/room-read-cursor.entity.ts
 import {Column, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn} from 'typeorm';
-import {Room} from "../../room/entities/room.entity";
+import {Room} from "../../room/entities/chat-room.entity";
 import {User} from "../../../user/entities/user.entity";
 
 @Entity('room_read_cursors')
