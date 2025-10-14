@@ -1,7 +1,7 @@
 import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
 import {BaseTable} from "../../common/entity/base-table.entity";
 import {User} from "../../user/entities/user.entity";
-import {ChatRoom} from "../room/entities/chat-room.entity";
+import {ChatRoom} from "../chat-room/entities/chat-room.entity";
 
 
 

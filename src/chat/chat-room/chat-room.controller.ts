@@ -4,6 +4,8 @@ import {UpdateRoomDto} from './dto/update-room.dto';
 import {CreateChatRoomDto} from "./dto/create-chat-room.dto";
 import {UserId} from "../../user/decorator/user-id.decorator";
 import {TransactionInterceptor} from "../../common/interceptor/transaction.interceptor";
+import {QueryRunner} from "../../common/decorator/query-runner.decorator";
+import {QueryRunner as QR} from "typeorm";
 
 @Controller('room')
 export class ChatRoomController {
@@ -12,13 +14,14 @@ export class ChatRoomController {
 
   @Post()
   @UseInterceptors(TransactionInterceptor)
-  create(@Body() createRoomDto: CreateChatRoomDto, @UserId() mbId: number) {
+  create(@Body() createRoomDto: CreateChatRoomDto, @QueryRunner() queryRunner: QR,
+         @UserId() mbId: number) {
     // 커서 생성, 메시지 생성 등 트랜잭션 처리 필요
-    return this.roomService.create(createRoomDto, mbId);
+    return this.roomService.create(createRoomDto, mbId, queryRunner);
   }
 
   @Get()
-  findMyRooms(@Request() req:any) {
+  findMyRooms(@Request() req: any) {
     return this.roomService.findMyRooms(req);
   }
 

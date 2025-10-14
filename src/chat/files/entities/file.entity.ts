@@ -1,6 +1,5 @@
 // src/chat/entities/file.entity.ts
 import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, CreateDateColumn, Index } from 'typeorm';
-import {FileKind, StorageKind} from "../../entities/chat.entity";
 import {Message} from "../../messages/entities/message.entity";
 
 @Entity('chat_files')
@@ -27,8 +26,6 @@ export class FileEntity {
   @Column({ name: 'file_size', type: 'bigint' })
   fileSize: string; // bigint → string
 
-  @Column({ type: 'enum', enum: FileKind })
-  kind: FileKind; // image | file
 
   @Column({ type: 'int', nullable: true })
   width: number | null;
@@ -38,9 +35,6 @@ export class FileEntity {
 
   @Column({ name: 'thumbnail_url', type: 'text', nullable: true })
   thumbnailUrl: string | null;
-
-  @Column({ type: 'enum', enum: StorageKind, default: StorageKind.LOCAL })
-  storage: StorageKind;
 
   @CreateDateColumn({ name: 'created_at',  })
   createdAt: string;

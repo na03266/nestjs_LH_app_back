@@ -5,6 +5,7 @@ import {DataSource, In, QueryRunner, Repository} from "typeorm";
 import {User} from "../../user/entities/user.entity";
 import {CreateChatRoomDto} from "./dto/create-chat-room.dto";
 import {ChatRoom} from "./entities/chat-room.entity";
+import {ChatCursor} from "../cursor/entities/chat-cursor.entity";
 
 @Injectable()
 export class ChatRoomService {
@@ -35,6 +36,7 @@ export class ChatRoomService {
 
     if (members.length !== createChatRoomDto.memberNos.length) throw new NotFoundException('존재하지 않는 사용자가 있습니다.')
 
+    members.push(user);
 
     const room = await qr.manager.createQueryBuilder()
       .insert()
@@ -50,6 +52,18 @@ export class ChatRoomService {
       .relation(ChatRoom, 'users')
       .of(roomId)
       .add(members.map(user => user.mbNo));
+
+    await qr.manager.createQueryBuilder()
+      .insert()
+      .into(ChatCursor)
+      .values(
+        members.map(m => ({
+          roomId,
+          userId: m.mbNo,
+          lastReadMessageId: null,
+          lastReadAt: null,
+        })))
+      .execute();
 
     return await qr.manager.findOne(ChatRoom, {
       where: {id: roomId},

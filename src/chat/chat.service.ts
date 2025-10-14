@@ -1,13 +1,10 @@
 import {Injectable} from '@nestjs/common';
-import {CreateChatDto} from './dto/create-chat.dto';
 import {Socket} from "socket.io";
 import {InjectRepository} from "@nestjs/typeorm";
 import {User} from "../user/entities/user.entity";
-import {QueryRunner, Repository} from "typeorm";
-import {plainToClass} from "class-transformer";
-import {WsException} from "@nestjs/websockets";
+import {Repository} from "typeorm";
 import {Chat} from "./entities/chat.entity";
-import {ChatRoom} from "./entities/chat-room.entity";
+import {ChatRoom} from "./chat-room/entities/chat-room.entity";
 
 @Injectable()
 export class ChatService {
@@ -41,60 +38,60 @@ export class ChatService {
     });
   }
 
-  async createMessage(payload: { sub: number }, {message, room}: CreateChatDto, qr: QueryRunner) {
-    const user = await this.userRepository.findOne({
-      where: {mbNo: payload.sub},
-    });
+  // async createMessage(payload: { sub: number }, {message, room}: CreateChatDto, qr: QueryRunner) {
+  //   const user = await this.userRepository.findOne({
+  //     where: {mbNo: payload.sub},
+  //   });
+  //
+  //   if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
+  //   // const chatRoom = await this.getOrCreateChatRoom(user, qr, room);
+  //
+  //   if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
+  //
+  //   const msgModel = await qr.manager.save(Chat, {
+  //     author: user,
+  //     message,
+  //     chatRoom,
+  //   });
+  //
+  //   const client = this.connectClients.get(user.mbNo);
+  //
+  //   if (!client) throw new WsException('정보를 찾을 수 없습니다.')
+  //
+  //   client.to(chatRoom.id.toString()).emit('newMessage', plainToClass(Chat, msgModel));
+  //
+  //   return message;
+  // }
 
-    if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
-    // const chatRoom = await this.getOrCreateChatRoom(user, qr, room);
-
-    if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
-
-    const msgModel = await qr.manager.save(Chat, {
-      author: user,
-      message,
-      chatRoom,
-    });
-
-    const client = this.connectClients.get(user.mbNo);
-
-    if (!client) throw new WsException('정보를 찾을 수 없습니다.')
-
-    client.to(chatRoom.id.toString()).emit('newMessage', plainToClass(Chat, msgModel));
-
-    return message;
-  }
-
-  async createChatRoom(payload: { sub: number }, {member}: CreateChatDto, qr: QueryRunner) {
-    /**
-     * 생성자,
-     * 방 생성,
-     *
-     */
-    const user = await this.userRepository.findOne({
-      where: {mbNo: payload.sub},
-    });
-
-    if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
-    // const chatRoom = await this.getOrCreateChatRoom(user, qr, room);
-
-    if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
-
-    const msgModel = await qr.manager.save(Chat, {
-      author: user,
-      message,
-      chatRoom,
-    });
-
-    const client = this.connectClients.get(user.mbNo);
-
-    if (!client) throw new WsException('정보를 찾을 수 없습니다.')
-
-    client.to(chatRoom.id.toString()).emit('newMessage', plainToClass(Chat, msgModel));
-
-    return message;
-  }
+  // async createChatRoom(payload: { sub: number }, {member}: CreateChatDto, qr: QueryRunner) {
+  //   /**
+  //    * 생성자,
+  //    * 방 생성,
+  //    *
+  //    */
+  //   const user = await this.userRepository.findOne({
+  //     where: {mbNo: payload.sub},
+  //   });
+  //
+  //   if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
+  //   // const chatRoom = await this.getOrCreateChatRoom(user, qr, room);
+  //
+  //   if (!user) throw new WsException('사용자를 찾을 수 없습니다.');
+  //
+  //   const msgModel = await qr.manager.save(Chat, {
+  //     author: user,
+  //     message,
+  //     chatRoom,
+  //   });
+  //
+  //   const client = this.connectClients.get(user.mbNo);
+  //
+  //   if (!client) throw new WsException('정보를 찾을 수 없습니다.')
+  //
+  //   client.to(chatRoom.id.toString()).emit('newMessage', plainToClass(Chat, msgModel));
+  //
+  //   return message;
+  // }
 
   // async getOrCreateChatRoom(user: User, qr: QueryRunner, room?: number): Promise<ChatRoom> {
   //   if (user.mbLevel >= 4) {

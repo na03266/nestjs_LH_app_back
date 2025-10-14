@@ -11,6 +11,8 @@ import {UserModule} from './user/user.module';
 import {AuthModule} from "./auth/auth.module";
 import {NoticeModule} from './notice/notice.module';
 import { ChatModule } from './chat/chat.module';
+import {ScheduleModule} from "@nestjs/schedule";
+import {CacheModule} from "@nestjs/cache-manager";
 
 @Module({
   imports: [
@@ -43,10 +45,15 @@ import { ChatModule } from './chat/chat.module';
       }), 
       inject: [ConfigService],
     }),
+    ScheduleModule.forRoot(),
     UserModule,
     AuthModule,
     NoticeModule,
     ChatModule,
+    CacheModule.register({
+      ttl: 3000,
+      isGlobal: true,
+    }),
   ],
   providers: [
     {

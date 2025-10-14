@@ -3,6 +3,7 @@ import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn
 import {User} from "../../../user/entities/user.entity";
 import {BaseTable} from "../../../common/entity/base-table.entity";
 import {Chat} from "../../entities/chat.entity";
+import {ChatCursor} from "../../cursor/entities/chat-cursor.entity";
 
 @Entity('rooms')
 export class ChatRoom extends BaseTable {
@@ -23,4 +24,10 @@ export class ChatRoom extends BaseTable {
     (chat) => chat.chatRoom,
   )
   chats: Chat[];
+
+  @OneToMany(
+    () => ChatCursor,
+    (cursor) => cursor.room,
+  )
+  cursors: ChatCursor;
 }

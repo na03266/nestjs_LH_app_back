@@ -13,6 +13,7 @@ export class TasksService {
   ) {
   }
 
+  //
   // @Cron('*/5 * * * * *')
   logEverySecond() {
     this.logger.fatal('1초마다 실행'); // 당장 해결해야하는문제

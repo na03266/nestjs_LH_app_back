@@ -1,8 +1,8 @@
 // src/chat/entities/message.entity.ts
 import {Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn} from 'typeorm';
-import {Room} from "../../room/entities/chat-room.entity";
 import {User} from "../../../user/entities/user.entity";
 import {BaseTable} from "../../../common/entity/base-table.entity";
+import {ChatRoom} from "../../chat-room/entities/chat-room.entity";
 
 export enum MessageType { TEXT = 'text', ATTACHMENT = 'attachment', SYSTEM = 'system' }
 export enum FileKind { IMAGE = 'image', FILE = 'file' }
@@ -15,8 +15,8 @@ export class Message extends BaseTable{
   @PrimaryGeneratedColumn({type: 'bigint'})
   id: string; // bigint → string
 
-  @ManyToOne(() => Room, {onDelete: 'CASCADE', eager: false})
-  room: Room;
+  @ManyToOne(() => ChatRoom, {onDelete: 'CASCADE', eager: false})
+  room: ChatRoom;
 
   @ManyToOne(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})
   author: User | null;
