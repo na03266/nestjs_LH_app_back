@@ -3,8 +3,8 @@ import {Socket} from "socket.io";
 import {InjectRepository} from "@nestjs/typeorm";
 import {User} from "../user/entities/user.entity";
 import {Repository} from "typeorm";
-import {Chat} from "./entities/chat.entity";
 import {ChatRoom} from "./chat-room/entities/chat-room.entity";
+import {ChatMessage} from "./messages/entities/chat-message.entity";
 
 @Injectable()
 export class ChatService {
@@ -13,8 +13,8 @@ export class ChatService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Chat)
-    private readonly chatRepository: Repository<Chat>,
+    @InjectRepository(ChatMessage)
+    private readonly chatRepository: Repository<ChatMessage>,
     @InjectRepository(ChatRoom)
     private readonly chatRoomRepository: Repository<ChatRoom>,
   ) {

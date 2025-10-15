@@ -1,29 +1,29 @@
-// src/chat/entities/chat-room.entity.ts
 import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
-import {User} from "../../../user/entities/user.entity";
 import {BaseTable} from "../../../common/entity/base-table.entity";
-import {Chat} from "../../entities/chat.entity";
 import {ChatCursor} from "../../cursor/entities/chat-cursor.entity";
+import {ChatMessage} from "../../messages/entities/chat-message.entity";
+import {User} from "../../../user/entities/user.entity";
 
-@Entity('rooms')
+@Entity()
 export class ChatRoom extends BaseTable {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({length: 100})
   name: string;
 
   @ManyToMany(
     () => User,
+    {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false}
   )
   @JoinTable()
-  users: User[];
+  members: User[];
 
   @OneToMany(
-    () => Chat,
-    (chat) => chat.chatRoom,
+    () => ChatMessage,
+    (messages) => messages.room,
   )
-  chats: Chat[];
+  messages: ChatMessage[];
 
   @OneToMany(
     () => ChatCursor,

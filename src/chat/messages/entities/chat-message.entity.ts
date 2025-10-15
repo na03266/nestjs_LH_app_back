@@ -1,21 +1,22 @@
 // src/chat/entities/message.entity.ts
-import {Column, Entity, Index, ManyToOne, PrimaryGeneratedColumn} from 'typeorm';
+import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from 'typeorm';
 import {User} from "../../../user/entities/user.entity";
 import {BaseTable} from "../../../common/entity/base-table.entity";
 import {ChatRoom} from "../../chat-room/entities/chat-room.entity";
 
-export enum MessageType { TEXT = 'text', ATTACHMENT = 'attachment', SYSTEM = 'system' }
-export enum FileKind { IMAGE = 'image', FILE = 'file' }
-export enum StorageKind { LOCAL = 'local', S3 = 's3' }
-export enum MemberRole  { ADMIN = 'admin', MEMBER = 'member' }
+export enum MessageType { SYSTEM, TEXT, IMAGE, FILE }
 
-@Entity('messages')
-@Index('idx_messages_room_id_id', ['room', 'id'])
-export class Message extends BaseTable{
+export enum FileKind { IMAGE, FILE }
+
+@Entity()
+export class ChatMessage extends BaseTable {
   @PrimaryGeneratedColumn({type: 'bigint'})
   id: string; // bigint → string
 
-  @ManyToOne(() => ChatRoom, {onDelete: 'CASCADE', eager: false})
+  @ManyToOne(
+    () => ChatRoom,
+    room => room.messages,
+    {onDelete: 'CASCADE', eager: false})
   room: ChatRoom;
 
   @ManyToOne(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})

@@ -1,4 +1,4 @@
-import {Column, Entity, Index, ManyToMany, OneToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, Index, ManyToMany, PrimaryGeneratedColumn} from "typeorm";
 
 @Entity({name: 'g5_member'})
 export class User {

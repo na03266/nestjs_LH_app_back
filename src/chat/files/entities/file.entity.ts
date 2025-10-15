@@ -1,6 +1,6 @@
 // src/chat/entities/file.entity.ts
 import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, CreateDateColumn, Index } from 'typeorm';
-import {Message} from "../../messages/entities/message.entity";
+import {ChatMessage} from "../../messages/entities/chat-message.entity";
 
 @Entity('chat_files')
 @Index('idx_chat_files_message_id', ['message'])
@@ -8,8 +8,8 @@ export class FileEntity {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string; // bigint → string
 
-  @ManyToOne(() => Message, { onDelete: 'CASCADE', eager: false })
-  message: Message;
+  @ManyToOne(() => ChatMessage, { onDelete: 'CASCADE', eager: false })
+  message: ChatMessage;
 
   @Column({ name: 'file_key', type: 'text' })
   fileKey: string; // 로컬 경로 or S3 key

@@ -8,12 +8,12 @@ import {ChatRoomModule} from "./chat-room/chat-room.module";
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {User} from "../user/entities/user.entity";
 import {ChatRoom} from "./chat-room/entities/chat-room.entity";
-import {Chat} from "./entities/chat.entity";
 import {AuthModule} from "../auth/auth.module";
+import {ChatMessage} from "./messages/entities/chat-message.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, ChatRoom, Chat]),
+    TypeOrmModule.forFeature([User, ChatRoom, ChatMessage]),
     ChatRoomModule,
     MessagesModule,
     FilesModule,

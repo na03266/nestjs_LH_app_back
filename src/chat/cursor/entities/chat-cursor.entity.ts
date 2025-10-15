@@ -4,28 +4,33 @@ import {User} from "../../../user/entities/user.entity";
 import {ChatRoom} from "../../chat-room/entities/chat-room.entity";
 import {BaseTable} from "../../../common/entity/base-table.entity";
 
-@Entity('room_read_cursors')
-@Index('idx_cursor_room_user', ['roomId', 'userId'])
+@Entity()
+@Index(['roomId', 'mbNo'])
 export class ChatCursor extends BaseTable {
-  @PrimaryColumn('uuid', {name: 'room_id'})
-  roomId: string;
+  @PrimaryColumn()
+  roomId: number;
 
-  @PrimaryColumn({name: 'user_id'})
-  userId: number;
+  @PrimaryColumn()
+  mbNo: number;
 
-  @ManyToOne(() => ChatRoom, {onDelete: 'CASCADE', eager: false})
-  @JoinColumn({name: 'room_id'})
+  @Column()
+  roomNickName: string;
 
+  @ManyToOne(() => ChatRoom,
+    room => room.cursors,
+    {onDelete: 'CASCADE', eager: false},
+  )
+  @JoinColumn({name: 'roomId'})
   room: ChatRoom;
 
-  @ManyToMany(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})
-  @JoinColumn({name: 'user_id'})
+  @ManyToOne(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})
+  @JoinColumn({name: 'mbNo'})
   @JoinTable()
   user: User;
 
-  @Column({name: 'last_read_message_id', type: 'bigint', nullable: true, default: null})
+  @Column({type: 'bigint', nullable: true, default: null})
   lastReadMessageId: string | null; // bigint → string
 
-  @Column({name: 'last_read_at', type: 'datetime', default: null})
+  @Column({type: 'datetime', default: null})
   lastReadAt: Date | null;
 }

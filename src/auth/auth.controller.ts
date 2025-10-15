@@ -13,18 +13,18 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  loginUser(@Authorization() token: string) {
-    return this.authService.login(token);
+  async loginUser(@Authorization() token: string) {
+    return await this.authService.login(token);
   }
 
   @Private()
   @Post('token/access')
-  rotateAccessToken(@Request() req: any) {
+  async rotateAccessToken(@Request() req: any) {
     const user = {
       mbNo: req.user.sub,
     }
     return {
-      accessToken: this.authService.issueToken(user, false),
+      accessToken: await this.authService.issueToken(user, false),
     };
   }
 
@@ -32,8 +32,8 @@ export class AuthController {
   @Post('login/passport')
   async loginUserPassport(@Request() req: any) {
     return {
-      refreshToken: this.authService.issueToken(req.user, true),
-      accessToken: this.authService.issueToken(req.user, false),
+      refreshToken: await this.authService.issueToken(req.user, true),
+      accessToken: await this.authService.issueToken(req.user, false),
     };
   }
 

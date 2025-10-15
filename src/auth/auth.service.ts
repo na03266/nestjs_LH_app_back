@@ -100,12 +100,13 @@ export class AuthService {
     const user = await this.userRepository.findOne({
       where: {mbId: mbId},
     });
-
     if (!user) {
+
       throw new BadRequestException('잘못된 로그인 정보입니다.');
     }
 
     if (typeof user.mbPassword !== "string") {
+
       throw new BadRequestException('잘못된 로그인 정보입니다.');
     }
 
@@ -113,13 +114,15 @@ export class AuthService {
     const passOk = mysql41PasswordVerify(mbPassword, user.mbPassword!);
 
     if (!passOk) {
+      console.log('123');
+
       throw new BadRequestException('잘못된 로그인 정보입니다.');
     }
 
     return user;
   }
 
-  issueToken(
+  async issueToken(
     user: {
       mbNo: number;
     },
@@ -132,7 +135,7 @@ export class AuthService {
       envVariables.accessTokenSecret,
     );
 
-    return this.jwtService.signAsync(
+    return await this.jwtService.signAsync(
       {
         sub: user.mbNo,
         type: isRefreshToken ? 'refresh' : 'access',
@@ -149,8 +152,8 @@ export class AuthService {
     const user = await this.authenticate(mbId, password);
 
     return {
-      refreshToken: this.issueToken(user, true),
-      accessToken: this.issueToken(user, false),
+      refreshToken: await this.issueToken(user, true),
+      accessToken: await this.issueToken(user, false),
     };
   }
 

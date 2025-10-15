@@ -1,11 +1,12 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {UpdateRoomDto} from './dto/update-room.dto';
 import {InjectRepository} from "@nestjs/typeorm";
-import {DataSource, In, QueryRunner, Repository} from "typeorm";
+import {In, QueryRunner, Repository} from "typeorm";
 import {User} from "../../user/entities/user.entity";
 import {CreateChatRoomDto} from "./dto/create-chat-room.dto";
 import {ChatRoom} from "./entities/chat-room.entity";
 import {ChatCursor} from "../cursor/entities/chat-cursor.entity";
+import {ChatMessage, MessageType} from "../messages/entities/chat-message.entity";
 
 @Injectable()
 export class ChatRoomService {
@@ -14,7 +15,6 @@ export class ChatRoomService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(ChatRoom)
     private readonly chatRoomRepository: Repository<ChatRoom>,
-    private readonly ds: DataSource,
   ) {
   }
 
@@ -49,9 +49,9 @@ export class ChatRoomService {
     const roomId = room.identifiers[0].id;
 
     await qr.manager.createQueryBuilder()
-      .relation(ChatRoom, 'users')
+      .relation(ChatRoom, 'members')
       .of(roomId)
-      .add(members.map(user => user.mbNo));
+      .add(members.map(m => m.mbNo));
 
     await qr.manager.createQueryBuilder()
       .insert()
@@ -59,11 +59,22 @@ export class ChatRoomService {
       .values(
         members.map(m => ({
           roomId,
-          userId: m.mbNo,
+          mbNo: m.mbNo,
+          roomNickName: CreateChatRoomDto.name,
           lastReadMessageId: null,
           lastReadAt: null,
         })))
       .execute();
+
+    await qr.manager.createQueryBuilder()
+      .insert()
+      .into(ChatMessage)
+      .values({
+        room: roomId,
+        type: MessageType.SYSTEM,
+        content: `'${CreateChatRoomDto.name}' 채팅방이 생성되었습니다.`,
+      })
+      .execute()
 
     return await qr.manager.findOne(ChatRoom, {
       where: {id: roomId},
@@ -84,7 +95,7 @@ export class ChatRoomService {
     return `This action updates a #${id} room`;
   }
 
-  async remove(id: string) {
+  async remove(id: number) {
     const room = await this.chatRoomRepository.find({where: {id}});
     if (!room) throw new NotFoundException('방을 찾을 수 없습니다.');
 
