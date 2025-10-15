@@ -15,8 +15,11 @@ export class ChatRoomController {
 
   @Post()
   @UseInterceptors(TransactionInterceptor)
-  create(@Body() createRoomDto: CreateChatRoomDto, @QueryRunner() queryRunner: QR,
-         @UserId() mbId: number) {
+  create(
+    @Body() createRoomDto: CreateChatRoomDto,
+    @QueryRunner() queryRunner: QR,
+    @UserId() mbId: number,
+  ) {
     // 커서 생성, 메시지 생성 등 트랜잭션 처리 필요
     return this.roomService.create(createRoomDto, mbId, queryRunner);
   }
