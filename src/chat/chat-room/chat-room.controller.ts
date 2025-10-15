@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, Param, Patch, Post, Request, UseInterceptors} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Param, Patch, Post, Query, UseInterceptors} from '@nestjs/common';
 import {ChatRoomService} from './chat-room.service';
 import {UpdateRoomDto} from './dto/update-room.dto';
 import {CreateChatRoomDto} from "./dto/create-chat-room.dto";
@@ -6,6 +6,7 @@ import {UserId} from "../../user/decorator/user-id.decorator";
 import {TransactionInterceptor} from "../../common/interceptor/transaction.interceptor";
 import {QueryRunner} from "../../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from "typeorm";
+import {GetChatRoomsDto} from "./dto/get-chat-rooms.dto";
 
 @Controller('room')
 export class ChatRoomController {
@@ -21,8 +22,11 @@ export class ChatRoomController {
   }
 
   @Get()
-  findMyRooms(@Request() req: any) {
-    return this.roomService.findMyRooms(req);
+  findMyRooms(
+    @UserId() mbNo: number,
+    @Query() dto: GetChatRoomsDto,
+  ) {
+    return this.roomService.findMyRooms(mbNo, dto);
   }
 
   @Get(':id')
