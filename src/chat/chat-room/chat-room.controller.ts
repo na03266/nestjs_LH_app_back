@@ -30,17 +30,22 @@ export class ChatRoomController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.roomService.findOne(id);
+  findOne(
+    @UserId() mbNo: number,
+    @Param('id') roomId: string,
+    @Query() dto: GetChatRoomsDto,
+  ) {
+    return this.roomService.findOne(+roomId, mbNo, dto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
+  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto,) {
     return this.roomService.update(id, updateRoomDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.roomService.remove(+id);
+  remove(@Param('id') id: string,
+         @UserId() mbNo: number) {
+    return this.roomService.remove(+id, mbNo);
   }
 }

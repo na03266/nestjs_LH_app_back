@@ -128,7 +128,8 @@ export class ChatRoomService {
         name,
         memberCount: room?.members?.length ?? 0,
         newMessageCount: unreadCount,
-      };0
+      };
+      0
     });
     return {
       fixedData,
@@ -137,9 +138,8 @@ export class ChatRoomService {
     }
   }
 
-  async findOne(id: string) {
+  async findOne(roomId: number, mbNo: number, dto: GetChatRoomsDto) {
     // 채팅을 불러와서 보여주는 부분
-    return `This action returns a #${id} room`;
   }
 
   update(id: string, updateRoomDto: UpdateRoomDto) {
@@ -147,11 +147,18 @@ export class ChatRoomService {
     return `This action updates a #${id} room`;
   }
 
-  async remove(id: number) {
-    const room = await this.chatRoomRepository.find({where: {id}});
+  async remove(id: number, mbNo: number) {
+    const user = await this.findUser(mbNo);
+    const room = await this.cursorRepository.findOne({
+      where: {
+        roomId: id,
+        mbNo: user.mbNo,
+      }
+    });
+
     if (!room) throw new NotFoundException('방을 찾을 수 없습니다.');
 
-    await this.chatRoomRepository.softDelete({id});
+    await this.cursorRepository.softDelete({room});
     return id;
   }
 }
