@@ -1,4 +1,5 @@
 import {Column, Entity, Index, ManyToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Exclude} from "class-transformer";
 
 @Entity({name: 'g5_member'})
 export class User {
@@ -11,9 +12,11 @@ export class User {
   mbId: string;
 
   @Column('varchar', {name: 'mb_password', length: 255, nullable: true, default: ''})
+  @Exclude()
   mbPassword: string | null;
 
   @Column('varchar', {name: 'mb_password2', length: 255, default: ''})
+  @Exclude()
   mbPassword2: string;
 
   @Column('varchar', {name: 'mb_name', length: 255, default: ''})

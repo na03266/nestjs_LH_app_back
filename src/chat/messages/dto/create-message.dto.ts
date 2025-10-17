@@ -13,4 +13,8 @@ export class CreateMessageDto {
   @IsEnum(MessageType)
   @IsNotEmpty()
   messageType: MessageType;
+
+  @IsOptional()
+  @IsString()
+  fileName: string;
 }

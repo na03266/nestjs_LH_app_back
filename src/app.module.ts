@@ -13,6 +13,7 @@ import {NoticeModule} from './notice/notice.module';
 import { ChatModule } from './chat/chat.module';
 import {ScheduleModule} from "@nestjs/schedule";
 import {CacheModule} from "@nestjs/cache-manager";
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import {CacheModule} from "@nestjs/cache-manager";
       ttl: 3000,
       isGlobal: true,
     }),
+    FileModule,
   ],
   providers: [
     {

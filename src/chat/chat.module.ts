@@ -2,7 +2,6 @@ import {Module} from '@nestjs/common';
 import {ChatService} from './chat.service';
 import {ChatGateway} from './chat.gateway';
 import {MessagesModule} from './messages/messages.module';
-import {FilesModule} from './files/files.module';
 import {CursorModule} from './cursor/cursor.module';
 import {ChatRoomModule} from "./chat-room/chat-room.module";
 import {TypeOrmModule} from "@nestjs/typeorm";
@@ -16,7 +15,6 @@ import {ChatMessage} from "./messages/entities/chat-message.entity";
     TypeOrmModule.forFeature([User, ChatRoom, ChatMessage]),
     ChatRoomModule,
     MessagesModule,
-    FilesModule,
     CursorModule,
     AuthModule
   ],
