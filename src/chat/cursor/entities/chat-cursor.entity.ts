@@ -28,9 +28,6 @@ export class ChatCursor extends BaseTable {
   @JoinTable()
   user: User;
 
-  @Column({type: 'bigint', nullable: true, default: null})
-  lastReadMessageId: string | null; // bigint → string
-
-  @Column({type: 'datetime', default: null})
-  lastReadAt: Date | null;
+  @Column({ default: null})
+  lastReadId: string;
 }

@@ -47,14 +47,19 @@ export class ChatRoomController {
 
   @Get(':id')
   findOne(
+    @UserId() mbNo: number,
     @Param('id') roomId: string,
   ) {
-    return this.roomService.findOne(+roomId);
+    return this.roomService.findOne(+roomId, mbNo);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto,) {
-    return this.roomService.update(id, updateRoomDto);
+  update(
+    @Param('id') id: string,
+    @UserId() mbNo: number,
+    @Body() updateRoomDto: UpdateRoomDto,
+    ) {
+    return this.roomService.update(id, updateRoomDto, mbNo);
   }
 
   @Patch(':id/add-member')

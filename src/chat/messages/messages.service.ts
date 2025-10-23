@@ -50,7 +50,7 @@ export class MessagesService {
   async create(mbNo: number, dto: CreateMessageDto, qr: QueryRunner) {
     const user = await this.findUser(mbNo);
 
-    const chatRoom = await this.findChatRoom(dto.room);
+    const chatRoom = await this.findChatRoom(dto.roomId);
 
     return await qr.manager.save(ChatMessage, {
       content: dto.message,

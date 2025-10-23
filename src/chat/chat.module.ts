@@ -9,10 +9,11 @@ import {User} from "../user/entities/user.entity";
 import {ChatRoom} from "./chat-room/entities/chat-room.entity";
 import {AuthModule} from "../auth/auth.module";
 import {ChatMessage} from "./messages/entities/chat-message.entity";
+import {ChatCursor} from "./cursor/entities/chat-cursor.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, ChatRoom, ChatMessage]),
+    TypeOrmModule.forFeature([User, ChatRoom, ChatMessage, ChatCursor]),
     ChatRoomModule,
     MessagesModule,
     CursorModule,

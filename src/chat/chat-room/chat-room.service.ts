@@ -1,4 +1,4 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {UpdateRoomDto} from './dto/update-room.dto';
 import {InjectRepository} from "@nestjs/typeorm";
 import {DataSource, In, QueryRunner, Repository} from "typeorm";
@@ -100,14 +100,13 @@ export class ChatRoomService {
     }
     qb.andWhere('cursor.mbNo = :mbNo', {mbNo: user.mbNo});
     const {nextCursor} = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
+    const [data, count] = await qb.getManyAndCount();
 
-    let [data, count] = await qb.getManyAndCount();
+    if (data.length === 0) return {fixedData: [], nextCursor, count};
 
     const chatRooms = await this.chatRoomRepository.find({
-      where: {
-        id: In(data.map(e => e.roomId))
-      },
-      relations: ['messages', 'members'],
+      where: {id: In(data.map(e => e.roomId))},
+      relations: ['members'],
     });
 
     const roomsById = new Map(chatRooms.map(r => [r.id, r]));
@@ -116,14 +115,10 @@ export class ChatRoomService {
       const room = roomsById.get(e.roomId);
       const name = room?.name ?? e.room?.name ?? '';
 
-      // id가 BIGINT 가능 → BigInt로 안전 비교 (숫자면 Number(...)로 바꿔도 됩니다)
-      const lastReadId = e.lastReadMessageId ? BigInt(e.lastReadMessageId) : 0n;
+      const lastReadAt = e.lastReadId ?? new Date(0);
 
       const messages = room?.messages ?? [];
-      const unreadCount = messages.reduce((acc, m) => {
-        const mid = BigInt(m.id);
-        return acc + (mid > lastReadId ? 1 : 0); // 마지막 읽음 이후만 카운트
-      }, 0);
+      const unreadCount = messages.reduce((acc, m) => acc + (m.id > lastReadAt ? 1 : 0), 0);
 
       return {
         roomId: e.roomId,
@@ -132,14 +127,12 @@ export class ChatRoomService {
         newMessageCount: unreadCount,
       };
     });
-    return {
-      fixedData,
-      nextCursor,
-      count,
-    }
+
+    return {fixedData, nextCursor, count};
   }
 
-  async findOne(roomId: number) {
+
+  async findOne(roomId: number, mbNo: number) {
     const room = await this.chatRoomRepository.findOne({
       where: {
         id: roomId,
@@ -147,12 +140,24 @@ export class ChatRoomService {
       relations: ['members'],
     })
     if (!room) throw new NotFoundException('채팅방을 찾을 수 없습니다.');
+    const cursor = await this.cursorRepository.findOne({
+      where: {
+        mbNo: mbNo,
+        roomId,
+      }
+    });
+
+    if (!cursor) throw new BadRequestException('잘못된 요청입니다')
+    await this.cursorRepository.update(
+      {roomId: cursor.roomId, mbNo: cursor.mbNo},
+      {lastReadId: new Date().toISOString()},
+    );
 
     return room;
   }
 
-  async update(id: string, dto: UpdateRoomDto) {
-    const room = await this.findOne(+id);
+  async update(id: string, dto: UpdateRoomDto, mbNo: number) {
+    const room = await this.findOne(+id, mbNo);
 
     room.name = dto.name;
     return await this.chatRoomRepository.save(room);
@@ -163,7 +168,7 @@ export class ChatRoomService {
 
     // 1) 방 + 기존 멤버 읽기(트랜잭션 매니저 사용 권장)
     const room = await qr.manager.findOne(ChatRoom, {
-      where: { id: roomId },
+      where: {id: roomId},
       relations: ['members'],
     });
     if (!room) throw new NotFoundException('방을 찾을 수 없습니다.');
@@ -179,7 +184,7 @@ export class ChatRoomService {
     }
 
     // 4) 존재 사용자 일괄 검증 (한 번의 IN 쿼리)
-    const found = await qr.manager.find(User, { where: { mbNo: In(newNos) } });
+    const found = await qr.manager.find(User, {where: {mbNo: In(newNos)}});
     if (found.length !== newNos.length) {
       const foundSet = new Set(found.map((u) => u.mbNo));
       const missing = newNos.filter((x) => !foundSet.has(x));
@@ -190,9 +195,9 @@ export class ChatRoomService {
       where: {
         id: +id,
       },
-      relations:['members'],
+      relations: ['members'],
     });
-    return temp?.members.map(m=> m.mbNo);
+    return temp?.members.map(m => m.mbNo);
   }
 
   async remove(id: number, mbNo: number) {
