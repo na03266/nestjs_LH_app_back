@@ -3,6 +3,7 @@ import {Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn} from 'typ
 import {User} from "../../../user/entities/user.entity";
 import {BaseTable} from "../../../common/entity/base-table.entity";
 import {ChatRoom} from "../../chat-room/entities/chat-room.entity";
+import {Transform} from "class-transformer";
 
 export enum MessageType { SYSTEM, TEXT, IMAGE, FILE }
 
@@ -29,4 +30,9 @@ export class ChatMessage extends BaseTable {
 
   @Column({type: 'text', nullable: true})
   content: string | null;
+
+  @Column({type: 'text', nullable: true})
+  @Transform(({ value }) => `http://localhost:3000/${value}`)
+  filePath: string | null;
+
 }

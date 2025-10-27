@@ -13,7 +13,8 @@ import {NoticeModule} from './notice/notice.module';
 import { ChatModule } from './chat/chat.module';
 import {ScheduleModule} from "@nestjs/schedule";
 import {CacheModule} from "@nestjs/cache-manager";
-import { FileModule } from './file/file.module';
+import {join} from "path";
+import { ServeStaticModule } from "@nestjs/serve-static";
 
 @Module({
   imports: [
@@ -46,6 +47,10 @@ import { FileModule } from './file/file.module';
       }), 
       inject: [ConfigService],
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public'),
+      serveRoot: '/public/',
+    }),
     ScheduleModule.forRoot(),
     UserModule,
     AuthModule,
@@ -55,7 +60,6 @@ import { FileModule } from './file/file.module';
       ttl: 3000,
       isGlobal: true,
     }),
-    FileModule,
   ],
   providers: [
     {

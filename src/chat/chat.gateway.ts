@@ -104,6 +104,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       body,
       qr,
     );
+    if (!r) return this.deny(client, 'Forbidden');
+
     // 방에 실시간 메시지 브로드캐스트
     this.server.to(`room:${r.roomId}`).emit('message:new', r.message);
 

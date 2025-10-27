@@ -1,15 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthGuard } from '../auth/guard/auth.guard';
-import { UseGuards } from '@nestjs/common';
-import { PagePaginationDto } from '../common/dto/page-pagination.dto';
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+  UseInterceptors
+} from '@nestjs/common';
+import {UserService} from './user.service';
+import {CreateUserDto} from './dto/create-user.dto';
+import {UpdateUserDto} from './dto/update-user.dto';
+import {AuthGuard} from '../auth/guard/auth.guard';
+import {PagePaginationDto} from '../common/dto/page-pagination.dto';
 
 @Controller('user')
+@UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(AuthGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) {
+  }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -19,6 +31,11 @@ export class UserController {
   @Get()
   findAll(@Query() dto: PagePaginationDto) {
     return this.userService.findAll(undefined, dto);
+  }
+
+  @Get('me')
+  findOneMe() {
+    return this.userService.findOneMe();
   }
 
   @Get(':id')

@@ -7,6 +7,8 @@ import {ChatRoom} from "./chat-room/entities/chat-room.entity";
 import {ChatMessage, MessageType} from "./messages/entities/chat-message.entity";
 import {CreateMessageDto} from "./messages/dto/create-message.dto";
 import {ChatCursor} from "./cursor/entities/chat-cursor.entity";
+import {join} from "path";
+import {rename} from "node:fs/promises";
 
 @Injectable()
 export class ChatService {
@@ -135,6 +137,12 @@ export class ChatService {
   }
 
   // ───────────────────────── 메시지 생성 (전송 비의존) ─────────────────────────
+  renameFile(tempFolder: string, fileFolder: string, createMessageDto: CreateMessageDto) {
+    return rename(
+      join(process.cwd(), tempFolder, createMessageDto.fileName),
+      join(process.cwd(), fileFolder, createMessageDto.fileName),
+    );
+  }
   /**
    * 메시지 생성(트랜잭션 내)
    * 게이트웨이는 반환값을 받아 방/사용자 룸으로 emit만 하면 됨.
@@ -171,13 +179,20 @@ export class ChatService {
     const ok = await this.isRoomMember(roomId, user.mbNo, em);
     if (!ok) throw new ForbiddenException('채팅방 멤버가 아닙니다.');
 
+    const fileFolder = join('public', 'file');
+    const tempFolder = join('public', 'temp');
+
+
     // 3) 메시지 저장
     const saved = await em.save(ChatMessage, {
       author: user,          // or authorId
       room: chatRoom,        // or roomId
       content: message,
       type: dto.messageType ?? MessageType.TEXT,
+      fileName: join(fileFolder, dto.fileName),
     });
+
+    await this.renameFile(tempFolder, fileFolder, dto);
 
     // 4) 보낸 사람 커서 즉시 읽음 처리(내 unread 0 유지)
     await em.createQueryBuilder()

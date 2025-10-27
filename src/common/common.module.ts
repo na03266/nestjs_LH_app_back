@@ -17,11 +17,13 @@ import {TasksService} from './tasks.service';
 
             let extension = 'mp4';
 
+            let filename = '';
             if (split.length > 1) {
               extension = split[split.length - 1];
+              filename = split[0];
             }
 
-            cb(null, `${v4()}_${Date.now()}.${extension}`);
+            cb(null, `${v4()}_${Date.now()}_${filename}.${extension}`);
           },
         }),
       }),

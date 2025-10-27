@@ -5,7 +5,7 @@ import {FileInterceptor} from '@nestjs/platform-express';
 export class CommonController {
 
   @Post('file')
-  @UseInterceptors(FileInterceptor('video',
+  @UseInterceptors(FileInterceptor('file',
     {
       limits: {
         fileSize: 2000000,
