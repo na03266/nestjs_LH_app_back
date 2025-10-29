@@ -15,6 +15,7 @@ import {CreateUserDto} from './dto/create-user.dto';
 import {UpdateUserDto} from './dto/update-user.dto';
 import {AuthGuard} from '../auth/guard/auth.guard';
 import {PagePaginationDto} from '../common/dto/page-pagination.dto';
+import {UserId} from "./decorator/user-id.decorator";
 
 @Controller('user')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -34,8 +35,11 @@ export class UserController {
   }
 
   @Get('me')
-  findOneMe() {
-    return this.userService.findOneMe();
+
+  findOneMe(
+    @UserId() no : number,
+  ) {
+    return this.userService.findOneMe(no);
   }
 
   @Get(':id')
@@ -45,6 +49,11 @@ export class UserController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(+id, updateUserDto);
+  }
+
+  @Patch(':id')
+  updatePassword(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(+id, updateUserDto);
   }
 

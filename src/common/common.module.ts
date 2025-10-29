@@ -6,9 +6,12 @@ import {join} from 'path';
 import {diskStorage} from 'multer';
 import {MulterModule} from '@nestjs/platform-express';
 import {TasksService} from './tasks.service';
+import {TypeOrmModule} from "@nestjs/typeorm";
+import {DeviceToken} from "../push/entities/device-token.entity";
 
 @Module({
     imports: [
+      TypeOrmModule.forFeature([DeviceToken]),
       MulterModule.register({
         storage: diskStorage({
           destination: join(process.cwd(), 'public', 'temp'),

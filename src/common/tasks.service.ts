@@ -1,8 +1,11 @@
 import {Injectable, Logger} from '@nestjs/common';
-import {SchedulerRegistry} from '@nestjs/schedule';
+import {Cron, SchedulerRegistry} from '@nestjs/schedule';
 import {readdir, unlink} from 'fs/promises';
 import {join, parse} from 'path';
 import * as process from 'node:process';
+import {LessThan, Repository} from "typeorm";
+import {DeviceToken} from "../push/entities/device-token.entity";
+import {InjectRepository} from "@nestjs/typeorm";
 
 @Injectable()
 export class TasksService {
@@ -10,10 +13,16 @@ export class TasksService {
 
   constructor(
     private readonly schedulerRegistry: SchedulerRegistry,
+    @InjectRepository(DeviceToken) private readonly repo: Repository<DeviceToken>
   ) {
   }
 
-  //
+  @Cron('0 4 * * *')
+  async run() {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000);
+    await this.repo.delete({optIn: false, lastSeenAt: LessThan(ninetyDaysAgo)});
+  }
+
   // @Cron('*/5 * * * * *')
   logEverySecond() {
     this.logger.fatal('1초마다 실행'); // 당장 해결해야하는문제

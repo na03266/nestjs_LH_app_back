@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { InjectRepository } from "@nestjs/typeorm";
-import { User } from "./entities/user.entity";
-import { Repository, SelectQueryBuilder } from "typeorm";
-import { PagePaginationDto } from "../common/dto/page-pagination.dto";
-import { CommonService } from "../common/common.service";
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
+import {CreateUserDto} from './dto/create-user.dto';
+import {UpdateUserDto} from './dto/update-user.dto';
+import {InjectRepository} from "@nestjs/typeorm";
+import {User} from "./entities/user.entity";
+import {Repository} from "typeorm";
+import {PagePaginationDto} from "../common/dto/page-pagination.dto";
+import {CommonService} from "../common/common.service";
 
 export enum UserRole {
   USER = 1,
@@ -38,7 +38,7 @@ export class UserService {
    * @returns 사용자 목록
    */
   async findAll(req: any, dto: PagePaginationDto) {
-    const { searchKey, searchValue } = dto;
+    const {searchKey, searchValue} = dto;
 
     const qb = this.userRepository.createQueryBuilder('users');
 
@@ -60,7 +60,7 @@ export class UserService {
           workshopId: req.user.workshopId,
         });
       } else if (req.user.role === UserRole.USER) {
-        qb.andWhere('users.id = :id', { id: req.user.id });
+        qb.andWhere('users.id = :id', {id: req.user.id});
       }
     }
 
@@ -94,7 +94,7 @@ export class UserService {
       throw new NotFoundException('일치하는 정보가 없습니다.');
     }
 
-    return { data: users, total: total };
+    return {data: users, total: total};
   }
 
   /**
@@ -103,12 +103,12 @@ export class UserService {
    * @returns 사용자 정보
    */
   async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOneBy({ mbNo: id });
-    
+    const user = await this.userRepository.findOneBy({mbNo: id});
+
     if (!user) {
       throw new NotFoundException(`ID ${id}인 사용자를 찾을 수 없습니다`);
     }
-    
+
     return user;
   }
 
@@ -130,14 +130,14 @@ export class UserService {
    * @returns 삭제된 사용자 정보
    */
   async remove(mbNo: number): Promise<User> {
-    const user = await this.userRepository.findOneBy({ mbNo });
-    
+    const user = await this.userRepository.findOneBy({mbNo});
+
     if (!user) {
       throw new NotFoundException(`ID ${mbNo}인 사용자를 찾을 수 없습니다`);
     }
-    
+
     const today = new Date();
-    
+
     // 삭제 시 개인정보 마스킹 처리
     user.mbPassword = '';
     user.mbPassword2 = '';
@@ -148,11 +148,11 @@ export class UserService {
     user.mbAddr2 = '';
     user.mbAddr3 = '';
     user.mbMemo = `${today.toLocaleString()} 삭제함`;
-    
+
     return await this.userRepository.save(user);
   }
 
-  findOneMe() {
-
+  async findOneMe(no: number) {
+    return await this.findOne(no);
   }
 }

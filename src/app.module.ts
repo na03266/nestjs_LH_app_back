@@ -15,6 +15,8 @@ import {ScheduleModule} from "@nestjs/schedule";
 import {CacheModule} from "@nestjs/cache-manager";
 import {join} from "path";
 import { ServeStaticModule } from "@nestjs/serve-static";
+import { FirebaseModule } from './firebase/firebase.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
@@ -60,6 +62,8 @@ import { ServeStaticModule } from "@nestjs/serve-static";
       ttl: 3000,
       isGlobal: true,
     }),
+    FirebaseModule,
+    PushModule,
   ],
   providers: [
     {
