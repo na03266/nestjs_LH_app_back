@@ -35,7 +35,6 @@ export class UserController {
   }
 
   @Get('me')
-
   findOneMe(
     @UserId() no : number,
   ) {

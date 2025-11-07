@@ -1,0 +1,382 @@
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
+import {InjectRepository} from "@nestjs/typeorm";
+import {BoardNotice} from "./entities/board-notice.entity";
+import {DataSource, QueryRunner, Repository} from "typeorm";
+import {BoardFile} from "../file/entities/board_file.entity";
+import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
+import {User} from "../user/entities/user.entity";
+import {CreateBoardNoticeReplyDto} from "./dto/create-board-notice.dto";
+
+type Wr1to10 = Partial<Record<'wr1' | 'wr2' | 'wr3' | 'wr4' | 'wr5' | 'wr6' | 'wr7' | 'wr8' | 'wr9' | 'wr10', string>>;
+
+@Injectable()
+export class BoardNoticeService {
+    constructor(
+        @InjectRepository(BoardNotice) private readonly noticeRepository: Repository<BoardNotice>,
+        @InjectRepository(BoardFile) private readonly fileRepository: Repository<BoardFile>,
+        @InjectRepository(User) private readonly userRepository: Repository<User>,
+        private readonly dataSource: DataSource,
+    ) {
+    }
+
+    // 그누보드 관례: wr_num은 MIN-1
+    private async getNextNum(): Promise<number> {
+        const row = await this.noticeRepository
+            .createQueryBuilder('w')
+            .select('MIN(w.wrNum)', 'min')
+            .getRawOne<{ min: number | null }>();
+        return row?.min != null ? row.min - 1 : -1;
+    }
+
+    // wr_reply 다음 문자 계산 (bo_reply_order에 따라 A→Z 또는 Z→A)
+    private async getNextReplyChar(wrNum: number, parentReply: string,): Promise<string> {
+        const len = parentReply.length + 1;
+        const qb = this.noticeRepository
+            .createQueryBuilder('w')
+            .select(`MAX(SUBSTRING(w.wrReply, ${len}, 1))`, 'reply')
+            .where('w.wrNum = :wrNum', {wrNum})
+            .andWhere(`SUBSTRING(w.wrReply, :len, 1) <> ''`, {len});
+
+        if (parentReply) qb.andWhere('w.wrReply LIKE :prefix', {prefix: `${parentReply}%`});
+
+        const row = await qb.getRawOne<{ reply: string | null }>();
+
+        const begin = 'A';
+        const end = 'Z';
+        if (!row?.reply) return begin;
+        if (row.reply === end) throw new BadRequestException('더 이상 답변할 수 없습니다.');
+
+        const code = row.reply.charCodeAt(0) + 1;
+        return String.fromCharCode(code);
+    }
+
+    async findMember(mbNo: number) {
+        const mb = await this.userRepository.findOne({where: {mbNo}});
+        if (!mb) throw new NotFoundException('작성자 정보를 찾을 수 없습니다.');
+        return mb;
+    }
+
+    // 새 글
+    async createPost(
+        dto: CreateBoardDto,
+        ip: string,
+        mbNo: number,
+        qr: QueryRunner,
+    ) {
+        const mb = await this.findMember(mbNo);
+
+        const manager = qr.manager;
+
+        const wrNum = await this.getNextNum();
+
+        const now = new Date();
+        const entity = manager.create(BoardNotice, {
+            wrNum: wrNum ?? '',
+            wrReply: '',
+            wrParent: 0,
+            wrCommentReply: '',
+            caName: dto.caName ?? '',
+            wrOption: dto.wrOption ?? '',
+            wrSubject: dto.wrSubject,
+            wrContent: dto.wrContent,
+            wrLink1: dto.wrLink1,
+            wrLink2: dto.wrLink2,
+            mbId: mb.mbId ?? '',
+            wrPassword: mb.mbPassword ?? '',
+            wrName: mb.mbNick ?? '',
+            wrEmail: mb.mbEmail ?? '',
+            wrHomepage: mb.mbHomepage ?? '',
+            wrDatetime: this.formatDateTime(now),
+            wrFile: 0,
+            wrLast: this.formatDateTime(now),
+            wrIp: ip,
+        });
+
+        const saved = await manager.save(BoardNotice, entity);
+        await manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
+
+        return saved.wrId;
+
+    }
+
+    async findParent(parentId: number) {
+        const parent = await this.noticeRepository.findOne({where: {wrId: parentId}});
+        if (!parent) throw new BadRequestException('원글이 없습니다.');
+        if (parent.wrReply.length >= 10) throw new BadRequestException('더 이상 답변할 수 없습니다.');
+        return parent;
+    }
+
+    // 답변
+    async replyPost(
+        parentId: number,
+        dto: CreateBoardReplyDto,
+        ip: string,
+        mbNo: number,
+        qr: QueryRunner,
+    ) {
+        const parent = await this.findParent(parentId);
+        const writer = await this.findMember(mbNo);
+
+        const nextChar = await this.getNextReplyChar(parent.wrNum, parent.wrReply);
+        const reply = parent.wrReply + nextChar;
+
+        const now = new Date();
+        const entity = qr.manager.create(BoardNotice, {
+            wrNum: parent.wrNum,
+            wrReply: reply,
+            wrParent: 0, // 아래에서 self로 정규화
+            wrCommentReply: '',
+            caName: parent.caName ?? '',
+            wrOption: parent.wrOption ?? '',
+            wrSubject: dto.wrSubject,
+            wrContent: dto.wrContent,
+            wrSeoTitle: '',
+            wrLink1: '',
+            wrLink2: '',
+            mbId: writer.mbId ?? '',
+            wrPassword: (dto.wrOption ?? '').includes('secret') ? parent.wrPassword : (writer.mbPassword ?? ''),
+            wrName: writer.mbNick ?? '',
+            wrEmail: writer.mbEmail ?? '',
+            wrHomepage: writer.mbHomepage ?? '',
+            wrDatetime: this.formatDateTime(now),
+            wrLast: this.formatDateTime(now),
+            wrIp: ip,
+        });
+
+        const saved = await qr.manager.save(BoardNotice, entity);
+
+        await qr.manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
+        return saved.wrId;
+    }
+
+    async getNextCommentNo(parent: BoardNotice, qr: QueryRunner): Promise<number> {
+        const row = await qr.manager
+            .createQueryBuilder(BoardNotice, 'w')
+            .select('COALESCE(MAX(w.wrComment), 0)', 'max')
+            .where('w.wr_parent = :pid', {pid: parent.wrId})
+            .andWhere('w.wr_is_comment = 1')
+            .getRawOne<{ max: number | string }>();
+
+        const n = Number(row?.max);
+        const max = Number.isFinite(n) ? n : 0;
+        return max + 1;
+    }
+
+    private async getNextCommentLetter(
+        qr: QueryRunner,
+        parentId: number,
+        baseComment: BoardNotice, // 대상 댓글
+    ): Promise<string> {
+        const pos = (baseComment.wrCommentReply?.length ?? 0) + 1;
+        const begin = 'A';
+        const end = 'Z';
+        const step = 1;
+
+        const qb = qr.manager
+            .createQueryBuilder(BoardNotice, 'w')
+            .select(
+                'MAX(SUBSTRING(w.wr_comment_reply, :pos, 1)) AS reply'
+            )
+            .where('w.wr_parent = :pid', {pid: parentId})
+            .andWhere('w.wr_is_comment = 1')
+            .andWhere('w.wr_comment = :grp', {grp: baseComment.wrComment})
+            .andWhere('SUBSTRING(w.wr_comment_reply, :pos, 1) <> ""', {pos});
+
+        if (baseComment.wrCommentReply) {
+            qb.andWhere('w.wr_comment_reply LIKE :prefix', {prefix: `${baseComment.wrCommentReply}%`});
+        }
+
+        // reply는 문자열 또는 undefined
+        const row = await qb.getRawOne<{ reply: string | null }>();
+        const cur = row?.reply;
+
+        if (!cur) return begin;
+        if (cur === end) throw new BadRequestException('대댓글 분기 한도 도달');
+
+        return String.fromCharCode(cur.charCodeAt(0) + step);
+    }
+
+    async createComment(
+        parentId: number,
+        dto: CreateCommentDto,
+        ip: string,
+        mbNo: number,
+        qr: QueryRunner,
+        commentId?: number,
+    ) {
+        const parent = await this.findParent(parentId);
+        const writer = await this.findMember(mbNo);
+
+        let wrComment: number = 0;
+        let wrCommentReply = '';
+
+        if (commentId) {
+            // 대댓글: 대상 댓글 조회
+            const base = await qr.manager.findOne(BoardNotice, {
+                where: {wrId: commentId, wrParent: parentId, wrIsComment: 1},
+            });
+            if (!base) throw new BadRequestException('대상 댓글이 없습니다.');
+
+            const nextPos = (base.wrCommentReply?.length ?? 0) + 1;
+            if (nextPos > 5) throw new BadRequestException('대댓글 최대 5단계 제한');
+
+            const nextChar = await this.getNextCommentLetter(qr, parent.wrId, base); // asc 기준
+            wrComment = base.wrComment;
+            wrCommentReply = (base.wrCommentReply ?? '') + nextChar;
+        }
+
+        const now = new Date();
+        const entity = qr.manager.create(BoardNotice, {
+            wrNum: parent.wrNum,
+            wrReply: '',
+            wrParent: parent.wrId,
+            wrIsComment: 1,
+            wrComment: wrComment,
+            wrCommentReply: wrCommentReply,
+            caName: parent.caName ?? '',
+            wrOption: parent.wrOption ?? '',
+            wrSubject: '',
+            wrContent: dto.wrContent,
+            wrSeoTitle: '',
+            wrLink1: '',
+            wrLink2: '',
+            mbId: writer.mbId ?? '',
+            wrPassword: parent.wrPassword,
+            wrName: writer.mbNick ?? '',
+            wrEmail: writer.mbEmail ?? '',
+            wrHomepage: writer.mbHomepage ?? '',
+            wrDatetime: this.formatDateTime(now),
+            wrLast: this.formatDateTime(now),
+            wrIp: ip,
+        });
+
+        const saved = await qr.manager.save(BoardNotice, entity);
+
+        await qr.manager.update(BoardNotice, {wrId: parent.wrId}, {
+            wrComment: parent.wrComment + 1,
+            wrIsComment: 0,
+            wrLast: this.formatDateTime(now)
+        });
+        return saved.wrId;
+    }
+
+    // 수정
+    async updatePost(wrId: number, input: {
+        subject?: string;
+        content?: string;
+        caName?: string;
+        optionCsv?: string;
+        ip?: string;
+        wr1to10?: Wr1to10;
+    }): Promise<void> {
+        const post = await this.noticeRepository.findOne({where: {wrId}});
+        if (!post) throw new BadRequestException('글이 없습니다.');
+
+        const now = this.formatDateTime(new Date());
+        await this.noticeRepository.update(
+            {wrId},
+            {
+                wrSubject: input.subject ?? post.wrSubject,
+                wrContent: input.content ?? post.wrContent,
+                caName: input.caName ?? post.caName,
+                wrOption: input.optionCsv ?? post.wrOption,
+                wrLast: now,
+                wrIp: input.ip ?? post.wrIp,
+                ...(input.wr1to10 ?? {}),
+            },
+        );
+    }
+
+    // 파일 메타 업서트 및 wr_file 갱신
+    async upsertFiles(
+        boTable: string,
+        wrId: number,
+        items: Array<{
+            bfNo: number;
+            source?: string;
+            saved?: string;
+            bytes?: number;
+            width?: number;
+            height?: number;
+            type?: number;
+            content?: string;
+            fileurl?: string;
+            thumburl?: string;
+            storage?: string;
+            del?: boolean;
+        }>,
+    ): Promise<void> {
+        const now = new Date();
+
+        for (const f of items) {
+            const pk = {boTable, wrId, bfNo: f.bfNo};
+            const exists = await this.fileRepository.findOne({where: pk});
+
+            if (exists) {
+                if (f.del) {
+                    await this.fileRepository.update(pk, {
+                        bfSource: '',
+                        bfFile: '',
+                        bfContent: '',
+                        bfFilesize: 0,
+                        bfWidth: 0,
+                        bfHeight: 0,
+                        bfType: 0,
+                        bfFileurl: '',
+                        bfThumburl: '',
+                        bfStorage: '',
+                        bfDatetime: now,
+                    });
+                } else {
+                    await this.fileRepository.update(pk, {
+                        bfSource: f.source ?? exists.bfSource,
+                        bfFile: f.saved ?? exists.bfFile,
+                        bfContent: f.content ?? exists.bfContent,
+                        bfFilesize: f.bytes ?? exists.bfFilesize,
+                        bfWidth: f.width ?? exists.bfWidth,
+                        bfHeight: f.height ?? exists.bfHeight,
+                        bfType: f.type ?? exists.bfType,
+                        bfFileurl: f.fileurl ?? exists.bfFileurl,
+                        bfThumburl: f.thumburl ?? exists.bfThumburl,
+                        bfStorage: f.storage ?? exists.bfStorage,
+                        bfDatetime: now,
+                    });
+                }
+            } else {
+                await this.fileRepository.insert({
+                    boTable,
+                    wrId,
+                    bfNo: f.bfNo,
+                    bfSource: f.source ?? '',
+                    bfFile: f.saved ?? '',
+                    bfContent: f.content ?? '',
+                    bfDownload: 0,
+                    bfFilesize: f.bytes ?? 0,
+                    bfWidth: f.width ?? 0,
+                    bfHeight: f.height ?? 0,
+                    bfType: f.type ?? 0,
+                    bfFileurl: f.fileurl ?? '',
+                    bfThumburl: f.thumburl ?? '',
+                    bfStorage: f.storage ?? '',
+                    bfDatetime: now,
+                });
+            }
+        }
+
+        // wr_file = 첨부 개수(bf_file != '')
+        const cnt = await this.fileRepository
+            .createQueryBuilder('f')
+            .where('f.boTable = :boTable AND f.wrId = :wrId AND f.bfFile <> :empty', {
+                boTable, wrId, empty: '',
+            })
+            .getCount();
+
+        await this.noticeRepository.update({wrId}, {wrFile: cnt});
+    }
+
+    private formatDateTime(d: Date): string {
+        // 'YYYY-MM-DD HH:mm:SS' 포맷 (엔티티가 문자열 컬럼이므로)
+        const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+}

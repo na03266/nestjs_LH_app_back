@@ -96,9 +96,6 @@ export class TasksService {
 
     const job = this.schedulerRegistry.getCronJob('printer');
 
-    // console.log(job.lastDate());
-    // console.log(job.nextDate());
-    // console.log(job.nextDates(5));
 
     if (job.isActive) {
       job.stop();

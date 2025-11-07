@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
+import globals from "globals";
 
 
 @Catch(QueryFailedError)
@@ -16,7 +17,6 @@ export class QueryFailedExceptionFilter implements ExceptionFilter {
     if (exception.message.includes('duplicate key')) {
       message = '중복 키 에러';
     }
-
     response.status(status)
       .json({
         statusCode: status,

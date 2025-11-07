@@ -114,8 +114,6 @@ export class AuthService {
     const passOk = mysql41PasswordVerify(mbPassword, user.mbPassword!);
 
     if (!passOk) {
-      console.log('123');
-
       throw new BadRequestException('잘못된 로그인 정보입니다.');
     }
 

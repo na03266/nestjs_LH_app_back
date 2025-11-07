@@ -2,14 +2,13 @@ import {MiddlewareConsumer, Module, NestModule, RequestMethod,} from '@nestjs/co
 import {ConfigModule, ConfigService} from '@nestjs/config';
 import * as Joi from 'joi';
 import {TypeOrmModule} from '@nestjs/typeorm';
-import {APP_GUARD} from "@nestjs/core";
+import {APP_FILTER, APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthGuard} from "./auth/guard/auth.guard";
 import {RBACGuard} from "./auth/guard/rbac.guard";
 import {BearerTokenMiddleware} from "./auth/middleware/bearer-token.middleware";
 import {envVariables} from "./common/const/env.const";
 import {UserModule} from './user/user.module';
 import {AuthModule} from "./auth/auth.module";
-import {NoticeModule} from './notice/notice.module';
 import { ChatModule } from './chat/chat.module';
 import {ScheduleModule} from "@nestjs/schedule";
 import {CacheModule} from "@nestjs/cache-manager";
@@ -17,6 +16,13 @@ import {join} from "path";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { FirebaseModule } from './firebase/firebase.module';
 import { PushModule } from './push/push.module';
+import { BoardModule } from './board/board.module';
+import { DepartmentModule } from './department/department.module';
+import {ResponseTimeInterceptor} from "./common/interceptor/response-time.interceptor";
+import {QueryFailedExceptionFilter} from "./common/filter/query-failed.filter";
+import {ThrottleInterceptor} from "./common/interceptor/throttle.interceptor";
+import { BoardNoticeModule } from './board-notice/board-notice.module';
+import { SurveyModule } from './survey/survey.module';
 
 @Module({
   imports: [
@@ -56,7 +62,6 @@ import { PushModule } from './push/push.module';
     ScheduleModule.forRoot(),
     UserModule,
     AuthModule,
-    NoticeModule,
     ChatModule,
     CacheModule.register({
       ttl: 3000,
@@ -64,6 +69,10 @@ import { PushModule } from './push/push.module';
     }),
     FirebaseModule,
     PushModule,
+    BoardModule,
+    DepartmentModule,
+    BoardNoticeModule,
+    SurveyModule,
   ],
   providers: [
     {
@@ -73,6 +82,18 @@ import { PushModule } from './push/push.module';
     {
       provide: APP_GUARD,
       useClass: RBACGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseTimeInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: QueryFailedExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ThrottleInterceptor,
     },
   ],
 })
