@@ -1,13 +1,12 @@
-import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
+import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
 import {BoardNotice} from "./entities/board-notice.entity";
-import {DataSource, QueryRunner, Repository} from "typeorm";
+import {QueryRunner, Repository} from "typeorm";
 import {BoardFile} from "../file/entities/board_file.entity";
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
 import {User} from "../user/entities/user.entity";
-import {CreateBoardNoticeReplyDto} from "./dto/create-board-notice.dto";
-
-type Wr1to10 = Partial<Record<'wr1' | 'wr2' | 'wr3' | 'wr4' | 'wr5' | 'wr6' | 'wr7' | 'wr8' | 'wr9' | 'wr10', string>>;
+import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {G5Board} from "../board/entities/g5-board.entity";
 
 @Injectable()
 export class BoardNoticeService {
@@ -15,7 +14,7 @@ export class BoardNoticeService {
         @InjectRepository(BoardNotice) private readonly noticeRepository: Repository<BoardNotice>,
         @InjectRepository(BoardFile) private readonly fileRepository: Repository<BoardFile>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
-        private readonly dataSource: DataSource,
+        @InjectRepository(G5Board) private readonly boardRepository: Repository<G5Board>,
     ) {
     }
 
@@ -52,7 +51,7 @@ export class BoardNoticeService {
 
     async findMember(mbNo: number) {
         const mb = await this.userRepository.findOne({where: {mbNo}});
-        if (!mb) throw new NotFoundException('작성자 정보를 찾을 수 없습니다.');
+        if (!mb) throw new NotFoundException('멤버 정보를 찾을 수 없습니다.');
         return mb;
     }
 
@@ -90,6 +89,7 @@ export class BoardNoticeService {
             wrFile: 0,
             wrLast: this.formatDateTime(now),
             wrIp: ip,
+            wr1: dto.wr1 ?? '',
         });
 
         const saved = await manager.save(BoardNotice, entity);
@@ -99,8 +99,8 @@ export class BoardNoticeService {
 
     }
 
-    async findParent(parentId: number) {
-        const parent = await this.noticeRepository.findOne({where: {wrId: parentId}});
+    async findPost(wrId: number) {
+        const parent = await this.noticeRepository.findOne({where: {wrId: wrId}});
         if (!parent) throw new BadRequestException('원글이 없습니다.');
         if (parent.wrReply.length >= 10) throw new BadRequestException('더 이상 답변할 수 없습니다.');
         return parent;
@@ -114,7 +114,7 @@ export class BoardNoticeService {
         mbNo: number,
         qr: QueryRunner,
     ) {
-        const parent = await this.findParent(parentId);
+        const parent = await this.findPost(parentId);
         const writer = await this.findMember(mbNo);
 
         const nextChar = await this.getNextReplyChar(parent.wrNum, parent.wrReply);
@@ -141,25 +141,13 @@ export class BoardNoticeService {
             wrDatetime: this.formatDateTime(now),
             wrLast: this.formatDateTime(now),
             wrIp: ip,
+            wr1: parent.wr1,
         });
 
         const saved = await qr.manager.save(BoardNotice, entity);
 
         await qr.manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
         return saved.wrId;
-    }
-
-    async getNextCommentNo(parent: BoardNotice, qr: QueryRunner): Promise<number> {
-        const row = await qr.manager
-            .createQueryBuilder(BoardNotice, 'w')
-            .select('COALESCE(MAX(w.wrComment), 0)', 'max')
-            .where('w.wr_parent = :pid', {pid: parent.wrId})
-            .andWhere('w.wr_is_comment = 1')
-            .getRawOne<{ max: number | string }>();
-
-        const n = Number(row?.max);
-        const max = Number.isFinite(n) ? n : 0;
-        return max + 1;
     }
 
     private async getNextCommentLetter(
@@ -204,7 +192,7 @@ export class BoardNoticeService {
         qr: QueryRunner,
         commentId?: number,
     ) {
-        const parent = await this.findParent(parentId);
+        const parent = await this.findPost(parentId);
         const writer = await this.findMember(mbNo);
 
         let wrComment: number = 0;
@@ -248,6 +236,7 @@ export class BoardNoticeService {
             wrDatetime: this.formatDateTime(now),
             wrLast: this.formatDateTime(now),
             wrIp: ip,
+            wr1: parent.wr1
         });
 
         const saved = await qr.manager.save(BoardNotice, entity);
@@ -261,30 +250,33 @@ export class BoardNoticeService {
     }
 
     // 수정
-    async updatePost(wrId: number, input: {
-        subject?: string;
-        content?: string;
-        caName?: string;
-        optionCsv?: string;
-        ip?: string;
-        wr1to10?: Wr1to10;
-    }): Promise<void> {
-        const post = await this.noticeRepository.findOne({where: {wrId}});
-        if (!post) throw new BadRequestException('글이 없습니다.');
+    async updatePost(wrId: number, ip: string, dto: UpdateBoardDto, mbNo: number): Promise<void> {
+        const post = await this.findPost(wrId);
+        const mb = await this.findMember(mbNo);
 
+        const boardData = await this.boardRepository.findOne({
+            where: {
+                boTable: 'comm08'
+            }
+        });
+
+        if (mb.mbLevel !== 10 && boardData?.boAdmin !== mb.mbId && mb.mbId === post.mbId) {
+            throw new ForbiddenException('삭제 권한이 없습니다.');
+        }
         const now = this.formatDateTime(new Date());
         await this.noticeRepository.update(
             {wrId},
             {
-                wrSubject: input.subject ?? post.wrSubject,
-                wrContent: input.content ?? post.wrContent,
-                caName: input.caName ?? post.caName,
-                wrOption: input.optionCsv ?? post.wrOption,
+                wrSubject: dto.wrSubject ?? post.wrSubject,
+                wrContent: dto.wrContent ?? post.wrContent,
+                caName: dto.caName ?? post.caName,
+                wrOption: dto.wrOption ?? post.wrOption,
                 wrLast: now,
-                wrIp: input.ip ?? post.wrIp,
-                ...(input.wr1to10 ?? {}),
+                wrIp: ip ?? post.wrIp,
+                wr1: dto.wr1 ?? post.wr1,
             },
         );
+        return
     }
 
     // 파일 메타 업서트 및 wr_file 갱신
@@ -378,5 +370,33 @@ export class BoardNoticeService {
         // 'YYYY-MM-DD HH:mm:SS' 포맷 (엔티티가 문자열 컬럼이므로)
         const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    async deletePost(wrId: number, mbNo: number): Promise<void> {
+
+        const mb = await this.findMember(mbNo);
+
+        const post = await this.findPost(wrId);
+
+        const boardData = await this.boardRepository.findOne({
+            where: {
+                boTable: 'comm08'
+            }
+        });
+
+        if (mb.mbLevel !== 10 && boardData?.boAdmin !== mb.mbId && mb.mbId === post.mbId) {
+            throw new ForbiddenException('삭제 권한이 없습니다.');
+        }
+        const isReply = await this.noticeRepository.find({
+            where: {
+                wrParent: post.wrId
+            }
+        })
+
+        if (isReply) {
+            throw new ForbiddenException('덧글과 댓글을 삭제후 삭제가 가능합니다.');
+        }
+
+        await this.noticeRepository.delete({wrId});
     }
 }

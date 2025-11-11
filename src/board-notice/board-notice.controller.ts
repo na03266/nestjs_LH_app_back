@@ -1,12 +1,24 @@
-import {Body, Controller, Ip, Param, Patch, Post, Query, UploadedFiles, UseInterceptors} from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Ip,
+    Param,
+    Patch,
+    Post,
+    Query,
+    UploadedFiles,
+    UseInterceptors
+} from '@nestjs/common';
 import {BoardNoticeService} from './board-notice.service';
-import {UpdateBoardNoticeDto} from './dto/update-board-notice.dto';
 import {FilesInterceptor} from "@nestjs/platform-express";
 import {UserId} from "../user/decorator/user-id.decorator";
 import {TransactionInterceptor} from "../common/interceptor/transaction.interceptor";
 import {QueryRunner} from "../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from 'typeorm';
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
+import {UpdateBoardDto} from "../board/dto/update-board.dto";
 
 @Controller('board-notice')
 export class BoardNoticeController {
@@ -65,25 +77,23 @@ export class BoardNoticeController {
         return await this.service.createComment(parentId, dto, ip, mbNo, queryRunner, commentId);
     }
 
+    @Get()
+    async getAll() {
+        return await this.service.getAll();
+    }
+
+
     // 수정
-    @Patch(':wrId')
+    @Patch()
     async updatePost(
-        @Param('wrId') wrId: number,
-        @Body() dto: UpdateBoardNoticeDto,
+        @Query('wrId') wrId: number,
+        @Body() dto: UpdateBoardDto,
         @Ip() ip: string,
+        @UserId() mbNo: number,
+
     ) {
-        await this.service.updatePost(wrId, {
-            subject: dto.wr_subject,
-            content: dto.wr_content,
-            caName: dto.caName,
-            optionCsv: dto.option,
-            ip,
-            wr1to10: {
-                wr1: dto.wr_1, wr2: dto.wr_2, wr3: dto.wr_3, wr4: dto.wr_4, wr5: dto.wr_5,
-                wr6: dto.wr_6, wr7: dto.wr_7, wr8: dto.wr_8, wr9: dto.wr_9, wr10: dto.wr_10,
-            },
-        });
-        return {ok: true};
+        await this.service.updatePost(wrId, ip, dto, mbNo);
+        return wrId;
     }
 
     // 파일 메타 업서트
@@ -122,4 +132,15 @@ export class BoardNoticeController {
         await this.service.upsertFiles(boTable, wrId, items);
         return {ok: true, count: items.length};
     }
+
+    @Delete()
+    async deletePost(
+        @Param('wrId') wrId: number,
+        @UserId() mbNo: number,
+    ) {
+        await this.service.deletePost(wrId, mbNo);
+        return {ok: true};
+    }
+
+
 }

@@ -7,6 +7,7 @@ export class CreateBoardDto {
     @IsOptional() @IsString() wrOption?: string;         // 'html1,secret,mail'
     @IsOptional() @IsString() wrLink1?: string;
     @IsOptional() @IsString() wrLink2?: string;
+    @IsOptional() @IsString() wr1?: string;
 }
 
 export class CreateBoardReplyDto {
