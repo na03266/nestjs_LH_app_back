@@ -7,6 +7,10 @@ import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dt
 import {User} from "../user/entities/user.entity";
 import {UpdateBoardDto} from "../board/dto/update-board.dto";
 import {G5Board} from "../board/entities/g5-board.entity";
+import {GetPostsDto} from "./dto/get-posts.dto";
+import {CommonService} from "../common/common.service";
+import {envVariables} from "../common/const/env.const";
+import {ConfigService} from "@nestjs/config";
 
 @Injectable()
 export class BoardNoticeService {
@@ -15,6 +19,8 @@ export class BoardNoticeService {
         @InjectRepository(BoardFile) private readonly fileRepository: Repository<BoardFile>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(G5Board) private readonly boardRepository: Repository<G5Board>,
+        private readonly commonService: CommonService,
+        private readonly configService: ConfigService,
     ) {
     }
 
@@ -249,6 +255,74 @@ export class BoardNoticeService {
         return saved.wrId;
     }
 
+    getPosts() {
+        return this.noticeRepository
+            .createQueryBuilder('post')
+    }
+
+
+    // 목록 조회
+    async findAll(dto: GetPostsDto) {
+
+        const {title, caName, wr1} = dto;
+        const qb = this.getPosts().where('1=1'); // 안전한 시작점
+
+        if (title) qb.where('post.wrSubject LIKE :sub', {sub: `%${title}%`});
+        if (caName) qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
+        if (wr1) qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
+
+        this.commonService.applyPagePaginationParamToQb(qb, dto);
+
+        const [rows, count] = await qb.getManyAndCount();
+
+        // 이미 필요한 컬럼만 select 했으므로 추가 map 없이 바로 반환 가능
+        // 만약 응답 키 이름을 통일하고 싶다면 아래처럼 가볍게 매핑
+        const data = rows.map(e => ({
+            wrId: e.wrId,
+            wrSubject: e.wrSubject,
+            wrName: e.wrName,
+            wrDatetime: e.wrDatetime,
+            caName: e.caName == '' ? '기타' : e.caName,
+            wr1: e.wr1,
+        }));
+
+        return {
+            data,
+            meta: {
+                count,
+                page: dto.page ?? 1,
+                take: dto.take ?? 10,
+            }
+        };
+    }
+
+    async findOne(wrId: number) {
+        const [post, files, ip] = await Promise.all([
+            this.findPost(wrId),
+            this.fileRepository.find({
+                where: {
+                    boTable: 'comm08',
+                    wrId: wrId,
+                }
+            }),
+            this.configService.get<string>(envVariables.serverHost)
+        ]);
+
+        const lite = files.map((e) => ({
+            url: `http://${ip}/data/file/comm08/${e.bfFile}`,
+            fileName: e.bfSource,
+        }))
+
+        await this.noticeRepository.update({wrId}, {
+            wrHit: post.wrHit + 1
+        })
+
+        return {
+            ...post,
+            files: lite,
+        };
+    }
+
     // 수정
     async updatePost(wrId: number, ip: string, dto: UpdateBoardDto, mbNo: number): Promise<void> {
         const post = await this.findPost(wrId);
@@ -399,4 +473,6 @@ export class BoardNoticeService {
 
         await this.noticeRepository.delete({wrId});
     }
+
+
 }

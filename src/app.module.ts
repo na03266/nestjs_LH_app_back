@@ -39,6 +39,7 @@ import { SurveyModule } from './survey/survey.module';
         HASH_ROUNDS: Joi.number().required(),
         ACCESS_TOKEN_SECRET: Joi.string().required(),
         REFRESH_TOKEN_SECRET: Joi.string().required(),
+        SERVER_HOST: Joi.string().required(),
       }),
     }),
     TypeOrmModule.forRootAsync({
@@ -50,6 +51,7 @@ import { SurveyModule } from './survey/survey.module';
         username: configService.get<string>(envVariables.dbUsername),
         password: configService.get<string>(envVariables.dbPassword),
         database: configService.get<string>(envVariables.dbDatabase),
+        serverHost: configService.get<string>(envVariables.serverHost),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
       }), 

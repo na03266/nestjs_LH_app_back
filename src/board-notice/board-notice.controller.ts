@@ -19,6 +19,8 @@ import {QueryRunner} from "../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from 'typeorm';
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
 import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {Throttle} from "../common/decorator/throttle.decorator";
+import {GetPostsDto} from "./dto/get-posts.dto";
 
 @Controller('board-notice')
 export class BoardNoticeController {
@@ -78,8 +80,17 @@ export class BoardNoticeController {
     }
 
     @Get()
-    async getAll() {
-        return await this.service.getAll();
+    async getPosts(
+        @Query() dto: GetPostsDto,
+    ) {
+        return await this.service.findAll(dto);
+    }
+
+    @Get(':wrId')
+    async getPost(
+        @Param('wrId') wrId: number,
+    ) {
+        return await this.service.findOne(wrId);
     }
 
 
@@ -90,7 +101,6 @@ export class BoardNoticeController {
         @Body() dto: UpdateBoardDto,
         @Ip() ip: string,
         @UserId() mbNo: number,
-
     ) {
         await this.service.updatePost(wrId, ip, dto, mbNo);
         return wrId;

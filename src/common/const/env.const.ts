@@ -11,6 +11,8 @@ const refreshTokenSecret = 'REFRESH_TOKEN_SECRET';
 const ollamaBaseUrl = 'OLLAMA_BASE_URL';
 const ollamaModel = 'OLLAMA_MODEL';
 const uniboxTokenCode = 'UNIBOX_TOKEN_CODE';
+const serverHost = 'SERVER_HOST';
+
 
 export const envVariables = {
 	env,
@@ -26,4 +28,5 @@ export const envVariables = {
 	ollamaBaseUrl,
 	ollamaModel,
 	uniboxTokenCode,
+	serverHost,
 };
