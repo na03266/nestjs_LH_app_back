@@ -19,7 +19,6 @@ import {QueryRunner} from "../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from 'typeorm';
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
 import {UpdateBoardDto} from "../board/dto/update-board.dto";
-import {Throttle} from "../common/decorator/throttle.decorator";
 import {GetPostsDto} from "./dto/get-posts.dto";
 
 @Controller('board-notice')

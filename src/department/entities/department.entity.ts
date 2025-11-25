@@ -12,15 +12,16 @@ import {
     Unique,
 } from 'typeorm';
 import {Exclude} from "class-transformer";
+import {User} from "../../user/entities/user.entity";
 
-@Entity({ name: 'department' })
+@Entity({name: 'department'})
 @Check('ck_department_depth', 'depth BETWEEN 1 AND 3')
 @Unique('uq_department_parent_name', ['parent', 'name'])
 export class Department {
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true })
+    @PrimaryGeneratedColumn({type: 'int', unsigned: true})
     id!: number;
 
-    @Column({ type: 'varchar', length: 100, nullable: false })
+    @Column({type: 'varchar', length: 100, nullable: false})
     name!: string;
 
     @Index('idx_department_parent')
@@ -39,8 +40,15 @@ export class Department {
     @OneToMany(() => Department, (dept) => dept.parent)
     children!: Department[];
 
-    @Column({ type: 'tinyint', unsigned: true })
+    @OneToMany(()=> User, (user)=> user.deptSite)
+    members: User[]
+
+    @Column({type: 'tinyint', unsigned: true})
     depth!: number;
+
+    @Exclude()
+    @Column({type: 'varchar', length: 20, nullable: true})
+    type: number;
 
     @Exclude()
     @CreateDateColumn({

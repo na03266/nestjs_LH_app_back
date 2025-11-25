@@ -23,6 +23,7 @@ import {QueryFailedExceptionFilter} from "./common/filter/query-failed.filter";
 import {ThrottleInterceptor} from "./common/interceptor/throttle.interceptor";
 import { BoardNoticeModule } from './board-notice/board-notice.module';
 import { SurveyModule } from './survey/survey.module';
+import { BoardSuggestModule } from './board-suggest/board-suggest.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { SurveyModule } from './survey/survey.module';
     DepartmentModule,
     BoardNoticeModule,
     SurveyModule,
+    BoardSuggestModule,
   ],
   providers: [
     {
