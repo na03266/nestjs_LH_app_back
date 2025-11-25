@@ -11,19 +11,19 @@ import {
     UploadedFiles,
     UseInterceptors
 } from '@nestjs/common';
-import {BoardNoticeService} from './board-notice.service';
-import {FilesInterceptor} from "@nestjs/platform-express";
-import {UserId} from "../user/decorator/user-id.decorator";
+import {BoardEduService} from './board-edu.service';
 import {TransactionInterceptor} from "../common/interceptor/transaction.interceptor";
-import {QueryRunner} from "../common/decorator/query-runner.decorator";
-import {QueryRunner as QR} from 'typeorm';
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
-import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {QueryRunner} from "../common/decorator/query-runner.decorator";
+import {QueryRunner as QR} from "typeorm/query-runner/QueryRunner";
+import {UserId} from "../user/decorator/user-id.decorator";
 import {GetPostsDto} from "../board/dto/get-posts.dto";
+import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {FilesInterceptor} from "@nestjs/platform-express";
 
-@Controller('board-notice')
-export class BoardNoticeController {
-    constructor(private readonly service: BoardNoticeService) {
+@Controller('board-edu')
+export class BoardEduController {
+    constructor(private readonly service: BoardEduService) {
     }
 
     // 새 글

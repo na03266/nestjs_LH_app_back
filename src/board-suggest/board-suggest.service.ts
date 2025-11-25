@@ -7,7 +7,7 @@ import {G5Board} from "../board/entities/g5-board.entity";
 import {CommonService} from "../common/common.service";
 import {ConfigService} from "@nestjs/config";
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
-import {GetPostsDto} from "../board-notice/dto/get-posts.dto";
+import {GetPostsDto} from "../board/dto/get-posts.dto";
 import {envVariables} from "../common/const/env.const";
 import {UpdateBoardDto} from "../board/dto/update-board.dto";
 import {BoardSuggest} from "./entities/board-suggest.entity";
@@ -96,6 +96,7 @@ export class BoardSuggestService {
             wrLast: this.formatDateTime(now),
             wrIp: ip,
             wr1: dto.wr1 ?? '',
+            wr2: dto.wr2 ?? '',
         });
 
         const saved = await manager.save(BoardSuggest, entity);
@@ -148,6 +149,8 @@ export class BoardSuggestService {
             wrLast: this.formatDateTime(now),
             wrIp: ip,
             wr1: parent.wr1,
+            wr2: parent.wr2,
+
         });
 
         const saved = await qr.manager.save(BoardSuggest, entity);
@@ -242,7 +245,8 @@ export class BoardSuggestService {
             wrDatetime: this.formatDateTime(now),
             wrLast: this.formatDateTime(now),
             wrIp: ip,
-            wr1: parent.wr1
+            wr1: parent.wr1,
+            wr2: parent.wr2
         });
 
         const saved = await qr.manager.save(BoardSuggest, entity);
@@ -284,6 +288,10 @@ export class BoardSuggestService {
             wrDatetime: e.wrDatetime,
             caName: e.caName == '' ? '기타' : e.caName,
             wr1: e.wr1,
+            wr2: e.wr2,
+            wr3: e.wr3,
+            wr4: e.wr4,
+            wr5: e.wr5,
         }));
 
         return {
@@ -301,7 +309,7 @@ export class BoardSuggestService {
             this.findPost(wrId),
             this.fileRepository.find({
                 where: {
-                    boTable: 'comm22',
+                    boTable: 'comm20',
                     wrId: wrId,
                 }
             }),
@@ -309,7 +317,7 @@ export class BoardSuggestService {
         ]);
 
         const lite = files.map((e) => ({
-            url: `http://${ip}/data/file/comm22/${e.bfFile}`,
+            url: `http://${ip}/data/file/comm20/${e.bfFile}`,
             fileName: e.bfSource,
         }))
 
@@ -337,7 +345,7 @@ export class BoardSuggestService {
 
         const boardData = await this.boardRepository.findOne({
             where: {
-                boTable: 'comm22'
+                boTable: 'comm20'
             }
         });
 
@@ -461,7 +469,7 @@ export class BoardSuggestService {
 
         const boardData = await this.boardRepository.findOne({
             where: {
-                boTable: 'comm22'
+                boTable: 'comm20'
             }
         });
 

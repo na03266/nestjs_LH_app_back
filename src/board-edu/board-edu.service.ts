@@ -1,21 +1,21 @@
 import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from '@nestjs/common';
-import {InjectRepository} from "@nestjs/typeorm";
-import {BoardNotice} from "./entities/board-notice.entity";
-import {QueryRunner, Repository} from "typeorm";
-import {BoardFile} from "../file/entities/board_file.entity";
 import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
-import {User} from "../user/entities/user.entity";
-import {UpdateBoardDto} from "../board/dto/update-board.dto";
-import {G5Board} from "../board/entities/g5-board.entity";
+import {QueryRunner, Repository} from "typeorm";
 import {GetPostsDto} from "../board/dto/get-posts.dto";
-import {CommonService} from "../common/common.service";
 import {envVariables} from "../common/const/env.const";
+import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {InjectRepository} from "@nestjs/typeorm";
+import {BoardFile} from "../file/entities/board_file.entity";
+import {User} from "../user/entities/user.entity";
+import {G5Board} from "../board/entities/g5-board.entity";
+import {CommonService} from "../common/common.service";
 import {ConfigService} from "@nestjs/config";
+import {BoardEdu} from "./entities/board-edu.entity";
 
 @Injectable()
-export class BoardNoticeService {
+export class BoardEduService {
     constructor(
-        @InjectRepository(BoardNotice) private readonly noticeRepository: Repository<BoardNotice>,
+        @InjectRepository(BoardEdu) private readonly noticeRepository: Repository<BoardEdu>,
         @InjectRepository(BoardFile) private readonly fileRepository: Repository<BoardFile>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(G5Board) private readonly boardRepository: Repository<G5Board>,
@@ -75,7 +75,7 @@ export class BoardNoticeService {
         const wrNum = await this.getNextNum();
 
         const now = new Date();
-        const entity = manager.create(BoardNotice, {
+        const entity = manager.create(BoardEdu, {
             wrNum: wrNum ?? '',
             wrReply: '',
             wrParent: 0,
@@ -98,8 +98,8 @@ export class BoardNoticeService {
             wr1: dto.wr1 ?? '',
         });
 
-        const saved = await manager.save(BoardNotice, entity);
-        await manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
+        const saved = await manager.save(BoardEdu, entity);
+        await manager.update(BoardEdu, {wrId: saved.wrId}, {wrParent: saved.wrId});
 
         return saved.wrId;
 
@@ -127,7 +127,7 @@ export class BoardNoticeService {
         const reply = parent.wrReply + nextChar;
 
         const now = new Date();
-        const entity = qr.manager.create(BoardNotice, {
+        const entity = qr.manager.create(BoardEdu, {
             wrNum: parent.wrNum,
             wrReply: reply,
             wrParent: 0, // 아래에서 self로 정규화
@@ -150,16 +150,16 @@ export class BoardNoticeService {
             wr1: parent.wr1,
         });
 
-        const saved = await qr.manager.save(BoardNotice, entity);
+        const saved = await qr.manager.save(BoardEdu, entity);
 
-        await qr.manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
+        await qr.manager.update(BoardEdu, {wrId: saved.wrId}, {wrParent: saved.wrId});
         return saved.wrId;
     }
 
     private async getNextCommentLetter(
         qr: QueryRunner,
         parentId: number,
-        baseComment: BoardNotice, // 대상 댓글
+        baseComment: BoardEdu, // 대상 댓글
     ): Promise<string> {
         const pos = (baseComment.wrCommentReply?.length ?? 0) + 1;
         const begin = 'A';
@@ -167,7 +167,7 @@ export class BoardNoticeService {
         const step = 1;
 
         const qb = qr.manager
-            .createQueryBuilder(BoardNotice, 'w')
+            .createQueryBuilder(BoardEdu, 'w')
             .select(
                 'MAX(SUBSTRING(w.wr_comment_reply, :pos, 1)) AS reply'
             )
@@ -206,7 +206,7 @@ export class BoardNoticeService {
 
         if (commentId) {
             // 대댓글: 대상 댓글 조회
-            const base = await qr.manager.findOne(BoardNotice, {
+            const base = await qr.manager.findOne(BoardEdu, {
                 where: {wrId: commentId, wrParent: parentId, wrIsComment: 1},
             });
             if (!base) throw new BadRequestException('대상 댓글이 없습니다.');
@@ -220,7 +220,7 @@ export class BoardNoticeService {
         }
 
         const now = new Date();
-        const entity = qr.manager.create(BoardNotice, {
+        const entity = qr.manager.create(BoardEdu, {
             wrNum: parent.wrNum,
             wrReply: '',
             wrParent: parent.wrId,
@@ -245,9 +245,9 @@ export class BoardNoticeService {
             wr1: parent.wr1
         });
 
-        const saved = await qr.manager.save(BoardNotice, entity);
+        const saved = await qr.manager.save(BoardEdu, entity);
 
-        await qr.manager.update(BoardNotice, {wrId: parent.wrId}, {
+        await qr.manager.update(BoardEdu, {wrId: parent.wrId}, {
             wrComment: parent.wrComment + 1,
             wrIsComment: 0,
             wrLast: this.formatDateTime(now)
@@ -305,7 +305,7 @@ export class BoardNoticeService {
             this.findPost(wrId),
             this.fileRepository.find({
                 where: {
-                    boTable: 'comm08',
+                    boTable: 'comm22',
                     wrId: wrId,
                 }
             }),
@@ -313,7 +313,7 @@ export class BoardNoticeService {
         ]);
 
         const lite = files.map((e) => ({
-            url: `http://${ip}/data/file/comm08/${e.bfFile}`,
+            url: `http://${ip}/data/file/comm22/${e.bfFile}`,
             fileName: e.bfSource,
         }))
 
@@ -341,7 +341,7 @@ export class BoardNoticeService {
 
         const boardData = await this.boardRepository.findOne({
             where: {
-                boTable: 'comm08'
+                boTable: 'comm22'
             }
         });
 
@@ -359,6 +359,10 @@ export class BoardNoticeService {
                 wrLast: now,
                 wrIp: ip ?? post.wrIp,
                 wr1: dto.wr1 ?? post.wr1,
+                wr2: dto.wr2 ?? post.wr2,
+                wr3: dto.wr3 ?? post.wr3,
+                wr4: dto.wr4 ?? post.wr4,
+                wr5: dto.wr5 ?? post.wr5,
             },
         );
         return
@@ -465,7 +469,7 @@ export class BoardNoticeService {
 
         const boardData = await this.boardRepository.findOne({
             where: {
-                boTable: 'comm08'
+                boTable: 'comm22'
             }
         });
 

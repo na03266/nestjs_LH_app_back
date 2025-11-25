@@ -8,6 +8,10 @@ export class CreateBoardDto {
     @IsOptional() @IsString() wrLink1?: string;
     @IsOptional() @IsString() wrLink2?: string;
     @IsOptional() @IsString() wr1?: string;
+    @IsOptional() @IsString() wr2?: string;
+    @IsOptional() @IsString() wr3?: string;
+    @IsOptional() @IsString() wr4?: string;
+    @IsOptional() @IsString() wr5?: string;
 }
 
 export class CreateBoardReplyDto {

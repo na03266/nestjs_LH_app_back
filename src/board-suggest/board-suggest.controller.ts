@@ -17,7 +17,7 @@ import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dt
 import {QueryRunner} from "../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from "typeorm/query-runner/QueryRunner";
 import {UserId} from "../user/decorator/user-id.decorator";
-import {GetPostsDto} from "../board-notice/dto/get-posts.dto";
+import {GetPostsDto} from "../board/dto/get-posts.dto";
 import {UpdateBoardDto} from "../board/dto/update-board.dto";
 import {FilesInterceptor} from "@nestjs/platform-express";
 
