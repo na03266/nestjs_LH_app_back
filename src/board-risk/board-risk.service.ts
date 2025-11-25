@@ -1,21 +1,21 @@
 import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from "@nestjs/typeorm";
-import {BoardNotice} from "./entities/board-notice.entity";
 import {QueryRunner, Repository} from "typeorm";
 import {BoardFile} from "../file/entities/board_file.entity";
-import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
 import {User} from "../user/entities/user.entity";
-import {UpdateBoardDto} from "../board/dto/update-board.dto";
 import {G5Board} from "../board/entities/g5-board.entity";
-import {GetPostsDto} from "../board/dto/get-posts.dto";
 import {CommonService} from "../common/common.service";
-import {envVariables} from "../common/const/env.const";
 import {ConfigService} from "@nestjs/config";
+import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
+import {GetPostsDto} from "../board/dto/get-posts.dto";
+import {envVariables} from "../common/const/env.const";
+import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {BoardRisk} from "./entities/board-risk.entity";
 
 @Injectable()
-export class BoardNoticeService {
+export class BoardRiskService {
     constructor(
-        @InjectRepository(BoardNotice) private readonly noticeRepository: Repository<BoardNotice>,
+        @InjectRepository(BoardRisk) private readonly noticeRepository: Repository<BoardRisk>,
         @InjectRepository(BoardFile) private readonly fileRepository: Repository<BoardFile>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(G5Board) private readonly boardRepository: Repository<G5Board>,
@@ -75,7 +75,7 @@ export class BoardNoticeService {
         const wrNum = await this.getNextNum();
 
         const now = new Date();
-        const entity = manager.create(BoardNotice, {
+        const entity = manager.create(BoardRisk, {
             wrNum: wrNum ?? '',
             wrReply: '',
             wrParent: 0,
@@ -98,8 +98,8 @@ export class BoardNoticeService {
             wr1: dto.wr1 ?? '',
         });
 
-        const saved = await manager.save(BoardNotice, entity);
-        await manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
+        const saved = await manager.save(BoardRisk, entity);
+        await manager.update(BoardRisk, {wrId: saved.wrId}, {wrParent: saved.wrId});
 
         return saved.wrId;
 
@@ -127,7 +127,7 @@ export class BoardNoticeService {
         const reply = parent.wrReply + nextChar;
 
         const now = new Date();
-        const entity = qr.manager.create(BoardNotice, {
+        const entity = qr.manager.create(BoardRisk, {
             wrNum: parent.wrNum,
             wrReply: reply,
             wrParent: 0, // 아래에서 self로 정규화
@@ -150,16 +150,16 @@ export class BoardNoticeService {
             wr1: parent.wr1,
         });
 
-        const saved = await qr.manager.save(BoardNotice, entity);
+        const saved = await qr.manager.save(BoardRisk, entity);
 
-        await qr.manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
+        await qr.manager.update(BoardRisk, {wrId: saved.wrId}, {wrParent: saved.wrId});
         return saved.wrId;
     }
 
     private async getNextCommentLetter(
         qr: QueryRunner,
         parentId: number,
-        baseComment: BoardNotice, // 대상 댓글
+        baseComment: BoardRisk, // 대상 댓글
     ): Promise<string> {
         const pos = (baseComment.wrCommentReply?.length ?? 0) + 1;
         const begin = 'A';
@@ -167,7 +167,7 @@ export class BoardNoticeService {
         const step = 1;
 
         const qb = qr.manager
-            .createQueryBuilder(BoardNotice, 'w')
+            .createQueryBuilder(BoardRisk, 'w')
             .select(
                 'MAX(SUBSTRING(w.wr_comment_reply, :pos, 1)) AS reply'
             )
@@ -206,7 +206,7 @@ export class BoardNoticeService {
 
         if (commentId) {
             // 대댓글: 대상 댓글 조회
-            const base = await qr.manager.findOne(BoardNotice, {
+            const base = await qr.manager.findOne(BoardRisk, {
                 where: {wrId: commentId, wrParent: parentId, wrIsComment: 1},
             });
             if (!base) throw new BadRequestException('대상 댓글이 없습니다.');
@@ -220,7 +220,7 @@ export class BoardNoticeService {
         }
 
         const now = new Date();
-        const entity = qr.manager.create(BoardNotice, {
+        const entity = qr.manager.create(BoardRisk, {
             wrNum: parent.wrNum,
             wrReply: '',
             wrParent: parent.wrId,
@@ -245,9 +245,9 @@ export class BoardNoticeService {
             wr1: parent.wr1
         });
 
-        const saved = await qr.manager.save(BoardNotice, entity);
+        const saved = await qr.manager.save(BoardRisk, entity);
 
-        await qr.manager.update(BoardNotice, {wrId: parent.wrId}, {
+        await qr.manager.update(BoardRisk, {wrId: parent.wrId}, {
             wrComment: parent.wrComment + 1,
             wrIsComment: 0,
             wrLast: this.formatDateTime(now)
@@ -290,7 +290,7 @@ export class BoardNoticeService {
             this.findPost(wrId),
             this.fileRepository.find({
                 where: {
-                    boTable: 'comm08',
+                    boTable: 'comm21',
                     wrId: wrId,
                 }
             }),
@@ -298,7 +298,7 @@ export class BoardNoticeService {
         ]);
 
         const lite = files.map((e) => ({
-            url: `http://${ip}/data/file/comm08/${e.bfFile}`,
+            url: `http://${ip}/data/file/comm21/${e.bfFile}`,
             fileName: e.bfSource,
         }))
 
@@ -326,7 +326,7 @@ export class BoardNoticeService {
 
         const boardData = await this.boardRepository.findOne({
             where: {
-                boTable: 'comm08'
+                boTable: 'comm21'
             }
         });
 
@@ -450,7 +450,7 @@ export class BoardNoticeService {
 
         const boardData = await this.boardRepository.findOne({
             where: {
-                boTable: 'comm08'
+                boTable: 'comm21'
             }
         });
 

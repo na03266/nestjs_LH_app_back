@@ -275,23 +275,8 @@ export class BoardEduService {
 
         const [rows, count] = await qb.getManyAndCount();
 
-        // 이미 필요한 컬럼만 select 했으므로 추가 map 없이 바로 반환 가능
-        // 만약 응답 키 이름을 통일하고 싶다면 아래처럼 가볍게 매핑
-        const data = rows.map(e => ({
-            wrId: e.wrId,
-            wrSubject: e.wrSubject,
-            wrName: e.wrName,
-            wrDatetime: e.wrDatetime,
-            caName: e.caName,
-            wr1: e.wr1,
-            wr2: e.wr2,
-            wr3: e.wr3,
-            wr4: e.wr4,
-            wr5: e.wr5,
-        }));
-
         return {
-            data,
+            data: rows,
             meta: {
                 count,
                 page: dto.page ?? 1,
