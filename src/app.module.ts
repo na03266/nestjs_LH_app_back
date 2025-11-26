@@ -26,6 +26,7 @@ import { SurveyModule } from './survey/survey.module';
 import { BoardSuggestModule } from './board-suggest/board-suggest.module';
 import { BoardEduModule } from './board-edu/board-edu.module';
 import { BoardRiskModule } from './board-risk/board-risk.module';
+import { BoardManualModule } from './board-manual/board-manual.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { BoardRiskModule } from './board-risk/board-risk.module';
     BoardSuggestModule,
     BoardEduModule,
     BoardRiskModule,
+    BoardManualModule,
   ],
   providers: [
     {
