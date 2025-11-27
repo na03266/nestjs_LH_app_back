@@ -27,6 +27,7 @@ import { BoardSuggestModule } from './board-suggest/board-suggest.module';
 import { BoardEduModule } from './board-edu/board-edu.module';
 import { BoardRiskModule } from './board-risk/board-risk.module';
 import { BoardManualModule } from './board-manual/board-manual.module';
+import { SalaryModule } from './salary/salary.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { BoardManualModule } from './board-manual/board-manual.module';
     BoardEduModule,
     BoardRiskModule,
     BoardManualModule,
+    SalaryModule,
   ],
   providers: [
     {
