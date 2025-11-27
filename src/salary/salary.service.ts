@@ -23,13 +23,13 @@ export class SalaryService {
     }
 
     async findAll(mbNo: number, year?: number) {
-        const me = this.findMe(mbNo);
+        const me = await this.findMe(mbNo);
 
         // 1) 이 사용자(mbNo)에 대한 연도 목록 조회
         const yearRows = await this.salaryRepository
             .createQueryBuilder('s')
             .select('DISTINCT s.sa_year', 'year')
-            .where('s.sa_mbid = :mbId', {mbId: '9000102'}) // 실제 컬럼에 맞게 변환
+            .where('s.sa_mbid = :mbId', {mbId: me.mbId}) // 실제 컬럼에 맞게 변환
             .orderBy('s.sa_year', 'DESC')
             .getRawMany<{ year: number }>();
 
@@ -50,7 +50,7 @@ export class SalaryService {
                 's.sa_month AS month',
                 's.sa_id    AS saId',
             ])
-            .where('s.sa_mbid = :mbId', {mbId: '9000102'})
+            .where('s.sa_mbid = :mbId', {mbId: me.mbId})
             .andWhere('s.sa_year = :year', {year: targetYear})
             .orderBy('s.sa_month', 'DESC')
             .getRawMany<{

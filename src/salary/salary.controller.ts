@@ -2,6 +2,7 @@ import {Controller, Get, Param, Query, Res} from '@nestjs/common';
 import {SalaryService} from './salary.service';
 import {UserId} from "../user/decorator/user-id.decorator";
 import {Response} from 'express';
+import {Public} from "../auth/decorator/public.decorator";
 
 @Controller('salary')
 export class SalaryController {
@@ -18,6 +19,7 @@ export class SalaryController {
   }
 
 
+  @Public()
   @Get('html/:saId')
   async getSalaryHtml(
       @UserId() mbNo: number,
@@ -28,4 +30,5 @@ export class SalaryController {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   }
+
 }
