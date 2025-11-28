@@ -83,7 +83,7 @@ export class UserService {
      */
     async findOne(id: number) {
         const user = await this.userRepository.findOne({
-            where: {mbNo: 5},
+            where: {mbNo: id},
             relations: {
                 deptSite: true
             }
