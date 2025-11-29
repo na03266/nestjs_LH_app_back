@@ -10,6 +10,8 @@ import {SurveyResponse} from "./entities/survey-response.entity";
 import {SurveyAnswer} from "./entities/survey-answer.entity";
 import {User} from "../user/entities/user.entity";
 import {JoinSurveyDTO} from "./dto/join-survay.dto";
+import {GetPostsDto} from "../board/dto/get-posts.dto";
+import {CommonService} from "../common/common.service";
 
 @Injectable()
 export class SurveyService {
@@ -26,7 +28,8 @@ export class SurveyService {
         private readonly responseRepository: Repository<SurveyResponse>,
         @InjectRepository(SurveyAnswer)
         private readonly answerRepository: Repository<SurveyAnswer>,
-        private readonly dataSource: DataSource,
+
+        private readonly commonService: CommonService,
     ) {
     }
 
@@ -44,12 +47,21 @@ export class SurveyService {
      * - 기본 정보만 조회
      * - 필요시 relations 옵션으로 질문/선택지까지 포함 가능
      */
-    async findAll(mbNo: number) {
+    async findAll(mbNo: number, dto: GetPostsDto) {
         const me = await this.findMe(mbNo);
-        const surveys = await this.surveyRepository.find();
 
-        return await Promise.all(
-            surveys.map(async (e) => {
+        const {title} = dto;
+        const qb = this.surveyRepository.createQueryBuilder('po');
+
+        if (title) qb.where('po.poSubject LIKE :sub', {sub: `%${title}%`});
+
+        const surveys = await this.surveyRepository.find();
+        this.commonService.applyPagePaginationParamToQb(qb, dto);
+
+        const [rows, count] = await qb.getManyAndCount();
+
+        const data = await Promise.all(
+            rows.map(async (e) => {
                 const exists = await this.responseRepository.exists({
                     where: {
                         mbId: me.mbId,
@@ -68,6 +80,13 @@ export class SurveyService {
             }),
         );
 
+        return{
+            data,
+            meta:{
+                count,
+                page: dto.page ?? 1,
+                take: dto.take ?? 10,            }
+        }
 
     }
 

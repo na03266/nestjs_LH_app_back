@@ -8,12 +8,13 @@ import {SurveyResponse} from "./entities/survey-response.entity";
 import {SurveyOption} from "./entities/survey-option.entity";
 import {SurveyAnswer} from "./entities/survey-answer.entity";
 import {User} from "../user/entities/user.entity";
+import {CommonModule} from "../common/common.module";
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
             Survey, SurveyQuestion, SurveyResponse, SurveyOption, SurveyAnswer, User
-        ])
+        ]), CommonModule
     ],
     controllers: [SurveyController],
     providers: [SurveyService],
