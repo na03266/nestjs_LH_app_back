@@ -1,8 +1,6 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
-import {CreateSurveyDto} from './dto/create-survey.dto';
-import {UpdateSurveyDto} from './dto/update-survey.dto';
 import {InjectRepository} from "@nestjs/typeorm";
-import {DataSource, In, QueryRunner, Repository} from "typeorm";
+import {In, QueryRunner, Repository} from "typeorm";
 import {Survey} from "./entities/survey.entity";
 import {SurveyOption} from "./entities/survey-option.entity";
 import {SurveyQuestion} from "./entities/survey-question.entity";
@@ -55,8 +53,7 @@ export class SurveyService {
 
         if (title) qb.where('po.poSubject LIKE :sub', {sub: `%${title}%`});
 
-        const surveys = await this.surveyRepository.find();
-        this.commonService.applyPagePaginationParamToQb(qb, dto);
+        this.commonService.applyPagePaginationParamToQbForSurvey(qb, dto);
 
         const [rows, count] = await qb.getManyAndCount();
 

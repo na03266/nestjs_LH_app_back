@@ -20,6 +20,16 @@ export class CommonService {
     }
 
     // @ts-ignore
+    applyPagePaginationParamToQbForSurvey<T>(qb: SelectQueryBuilder<T>, dto: PagePaginationDto) {
+        const {page, take} = dto;
+        const skip = (page - 1) * take;
+        qb.orderBy(`${qb.alias}.poDateEnd `, 'DESC')
+
+        qb.take(take);
+        qb.skip(skip);
+    }
+
+    // @ts-ignore
     async applyCursorPaginationParamsToQb<T>(qb: SelectQueryBuilder<T>, dto: CursorPaginationDto) {
         let {cursor, order, take} = dto;
 

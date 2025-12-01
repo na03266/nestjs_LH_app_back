@@ -15,7 +15,7 @@ import {BoardEdu} from "./entities/board-edu.entity";
 @Injectable()
 export class BoardEduService {
     constructor(
-        @InjectRepository(BoardEdu) private readonly noticeRepository: Repository<BoardEdu>,
+        @InjectRepository(BoardEdu) private readonly eduRepository: Repository<BoardEdu>,
         @InjectRepository(BoardFile) private readonly fileRepository: Repository<BoardFile>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(G5Board) private readonly boardRepository: Repository<G5Board>,
@@ -26,7 +26,7 @@ export class BoardEduService {
 
     // 그누보드 관례: wr_num은 MIN-1
     private async getNextNum(): Promise<number> {
-        const row = await this.noticeRepository
+        const row = await this.eduRepository
             .createQueryBuilder('w')
             .select('MIN(w.wrNum)', 'min')
             .getRawOne<{ min: number | null }>();
@@ -36,7 +36,7 @@ export class BoardEduService {
     // wr_reply 다음 문자 계산 (bo_reply_order에 따라 A→Z 또는 Z→A)
     private async getNextReplyChar(wrNum: number, parentReply: string,): Promise<string> {
         const len = parentReply.length + 1;
-        const qb = this.noticeRepository
+        const qb = this.eduRepository
             .createQueryBuilder('w')
             .select(`MAX(SUBSTRING(w.wrReply, ${len}, 1))`, 'reply')
             .where('w.wrNum = :wrNum', {wrNum})
@@ -106,7 +106,7 @@ export class BoardEduService {
     }
 
     async findPost(wrId: number) {
-        const parent = await this.noticeRepository.findOne({where: {wrId: wrId}});
+        const parent = await this.eduRepository.findOne({where: {wrId: wrId}});
         if (!parent) throw new BadRequestException('원글이 없습니다.');
         if (parent.wrReply.length >= 10) throw new BadRequestException('더 이상 답변할 수 없습니다.');
         return parent;
@@ -256,7 +256,7 @@ export class BoardEduService {
     }
 
     getPosts() {
-        return this.noticeRepository
+        return this.eduRepository
             .createQueryBuilder('post')
     }
 
@@ -267,7 +267,7 @@ export class BoardEduService {
         const {title, caName, wr1} = dto;
         const qb = this.getPosts().where('1=1'); // 안전한 시작점
 
-        if (title) qb.where('post.wrSubject LIKE :sub', {sub: `%${title}%`});
+        if (title) qb.andWhere('post.wrSubject LIKE :sub', {sub: `%${title}%`});
         if (caName) qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
         if (wr1) qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
 
@@ -302,11 +302,11 @@ export class BoardEduService {
             fileName: e.bfSource,
         }))
 
-        await this.noticeRepository.update({wrId}, {
+        await this.eduRepository.update({wrId}, {
             wrHit: post.wrHit + 1
         })
 
-        const comments = await this.noticeRepository.find({
+        const comments = await this.eduRepository.find({
             where: {wrParent: wrId, wrIsComment: 1},
             order: {wrComment: "DESC"}
         })
@@ -334,7 +334,7 @@ export class BoardEduService {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
         const now = this.formatDateTime(new Date());
-        await this.noticeRepository.update(
+        await this.eduRepository.update(
             {wrId},
             {
                 wrSubject: dto.wrSubject ?? post.wrSubject,
@@ -437,7 +437,7 @@ export class BoardEduService {
             })
             .getCount();
 
-        await this.noticeRepository.update({wrId}, {wrFile: cnt});
+        await this.eduRepository.update({wrId}, {wrFile: cnt});
     }
 
     private formatDateTime(d: Date): string {
@@ -461,7 +461,7 @@ export class BoardEduService {
         if (mb.mbLevel !== 10 && boardData?.boAdmin !== mb.mbId && mb.mbId === post.mbId) {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
-        const isReply = await this.noticeRepository.find({
+        const isReply = await this.eduRepository.find({
             where: {
                 wrParent: post.wrId
             }
@@ -471,7 +471,7 @@ export class BoardEduService {
             throw new ForbiddenException('덧글과 댓글을 삭제후 삭제가 가능합니다.');
         }
 
-        await this.noticeRepository.delete({wrId});
+        await this.eduRepository.delete({wrId});
     }
 
 
