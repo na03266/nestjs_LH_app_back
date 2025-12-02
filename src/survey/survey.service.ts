@@ -26,7 +26,6 @@ export class SurveyService {
         private readonly responseRepository: Repository<SurveyResponse>,
         @InjectRepository(SurveyAnswer)
         private readonly answerRepository: Repository<SurveyAnswer>,
-
         private readonly commonService: CommonService,
     ) {
     }
@@ -78,12 +77,13 @@ export class SurveyService {
             }),
         );
 
-        return{
+        return {
             data,
-            meta:{
+            meta: {
                 count,
                 page: dto.page ?? 1,
-                take: dto.take ?? 10,            }
+                take: dto.take ?? 10,
+            }
         }
 
     }
@@ -92,8 +92,8 @@ export class SurveyService {
      * 설문 단건 조회
      * - 질문/선택지까지 함께 로딩
      */
-    async findOne(id: number): Promise<Survey> {
-
+    async findOne(id: number, mbNo: number) {
+        const me = await this.findMe(mbNo);
         const survey = await this.surveyRepository.findOne({
             where: {poId: id},
             relations: ['questions', 'questions.options'],
@@ -102,8 +102,17 @@ export class SurveyService {
         if (!survey) {
             throw new NotFoundException(`Survey ${id} not found`);
         }
+        const exists = await this.responseRepository.exists({
+            where: {
+                mbId: me.mbId,
+                poId: survey.poId,
+            },
+        });
 
-        return survey;
+        return {
+            ...survey,
+            isSurvey: exists,
+        };
     }
 
     /**
@@ -135,7 +144,9 @@ export class SurveyService {
     ) {
         // 1. 회원/설문 기본정보 확인
         const me = await this.findMe(mbNo);
-        const survey = await this.findOne(poId);
+        const survey = await this.surveyRepository.findOne({
+            where: {poId: poId},
+        });
 
         if (!survey) {
             throw new NotFoundException(`설문(poId=${poId})이 존재하지 않습니다.`);

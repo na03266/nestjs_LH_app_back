@@ -39,7 +39,7 @@ export class SurveyController {
         @Param('id') id: string,
         @UserId() mbNo: number,
     ) {
-        return this.surveyService.findOne(+id);
+        return this.surveyService.findOne(+id, mbNo);
     }
 
     @Post(':id')
