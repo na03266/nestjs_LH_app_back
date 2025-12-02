@@ -65,13 +65,18 @@ export class SurveyService {
                         poId: e.poId,
                     },
                 });
+                const count = await this.responseRepository.count({
+                    where: {
+                        poId: e.poId,
+                    },
+                });
 
                 return {
                     isSurvey: exists,             // true/false
                     poDate: e.poDate,
                     poDateEnd: e.poDateEnd,
                     poSubject: e.poSubject,
-                    poCnt1: e.poCnt1,
+                    poCount: count,
                     poId: e.poId,
                 };
             }),
@@ -108,10 +113,16 @@ export class SurveyService {
                 poId: survey.poId,
             },
         });
+        const count = await this.responseRepository.count({
+            where: {
+                poId: survey.poId,
+            },
+        });
 
         return {
             ...survey,
             isSurvey: exists,
+            poCount:count,
         };
     }
 
