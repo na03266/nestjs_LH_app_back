@@ -54,7 +54,7 @@ export class Survey {
     poPoll10: string;
 
     @Column({name: 'po_cnt1', type: 'int', default: 0})
-    poCnt1: number;
+    poCnt1: number; // 참여자 수
 
     @Exclude()
     @Column({name: 'po_cnt2', type: 'int', default: 0})
@@ -96,6 +96,7 @@ export class Survey {
     @Column({name: 'po_etc', type: 'varchar', length: 255, default: ''})
     poEtc: string;
 
+    @Exclude()
     @Column({name: 'po_level', type: 'tinyint', default: 0})
     poLevel: number;
 
@@ -109,6 +110,7 @@ export class Survey {
     @Column({name: 'po_date_end', type: 'date', nullable: true})
     poDateEnd?: Date | null;
 
+    @Exclude()
     @Column({
         name: 'po_is_survey',
         type: 'tinyint',
@@ -116,7 +118,7 @@ export class Survey {
         default: 0,
         comment: '설문조사 여부',
     })
-    poIsSurvey: number; // 필요하면 boolean + transformer로 변경 가능
+    poIsSurvey: number;
 
     @Exclude()
     @Column({name: 'po_ips', type: 'mediumtext'})

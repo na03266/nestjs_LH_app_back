@@ -43,13 +43,6 @@ export class SurveyQuestion {
     })
     sqRequired: number; // 필요하면 boolean + transformer로 변경 가능
 
-    @Column({
-        name: 'sq_content',
-        type: 'text',
-        nullable: true,
-        comment: '질문 설명',
-    })
-    sqContent?: string | null;
 
     @ManyToOne(
         () => Survey,

@@ -51,7 +51,8 @@ export class SurveyService {
         const {title} = dto;
         const qb = this.surveyRepository.createQueryBuilder('po');
 
-        if (title) qb.where('po.poSubject LIKE :sub', {sub: `%${title}%`});
+        if (title) qb.andWhere('po.poSubject LIKE :sub', {sub: `%${title}%`});
+        qb.andWhere('po.poIsSurvey = 1')
 
         this.commonService.applyPagePaginationParamToQbForSurvey(qb, dto);
 
