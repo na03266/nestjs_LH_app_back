@@ -458,7 +458,7 @@ export class BoardNoticeService {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
 
-        const isReply = await this.noticeRepository.find({
+        const isReply = await this.noticeRepository.exists({
             where: {
                 wrParent: post.wrId
             }
