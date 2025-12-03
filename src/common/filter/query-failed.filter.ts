@@ -13,7 +13,7 @@ export class QueryFailedExceptionFilter implements ExceptionFilter {
     const status = 400;
 
     let message = '데이터베이스 에러 발생';
-
+      console.log(exception);
     if (exception.message.includes('duplicate key')) {
       message = '중복 키 에러';
     }
