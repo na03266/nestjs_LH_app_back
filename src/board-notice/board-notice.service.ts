@@ -458,14 +458,16 @@ export class BoardNoticeService {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
 
-        const isReply = await this.noticeRepository.exists({
-            where: {
-                wrParent: post.wrId
-            }
-        })
+        if (post.wrId != post.wrParent) {
+            const isReply = await this.noticeRepository.exists({
+                where: {
+                    wrParent: post.wrId
+                }
+            })
 
-        if (isReply) {
-            throw new ForbiddenException('덧글과 댓글을 삭제후 삭제가 가능합니다.');
+            if (isReply) {
+                throw new ForbiddenException('덧글과 댓글을 삭제후 삭제가 가능합니다.');
+            }
         }
 
         await this.noticeRepository.delete({wrId});
