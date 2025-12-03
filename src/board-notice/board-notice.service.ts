@@ -457,6 +457,7 @@ export class BoardNoticeService {
         if (mb.mbLevel !== 10 && boardData?.boAdmin !== mb.mbId && mb.mbId === post.mbId) {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
+
         const isReply = await this.noticeRepository.find({
             where: {
                 wrParent: post.wrId

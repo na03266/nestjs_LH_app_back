@@ -142,14 +142,12 @@ export class BoardNoticeController {
         return {ok: true, count: items.length};
     }
 
-    @Delete()
+    @Delete('')
     async deletePost(
-        @Param('wrId') wrId: number,
+        @Query('wrId') wrId: number,
         @UserId() mbNo: number,
     ) {
         await this.service.deletePost(wrId, mbNo);
         return {ok: true};
     }
-
-
 }
