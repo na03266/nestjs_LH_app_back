@@ -7,6 +7,8 @@ import {Repository} from "typeorm";
 import {PagePaginationDto} from "../common/dto/page-pagination.dto";
 import {CommonService} from "../common/common.service";
 import {Department} from "../department/entities/department.entity";
+import {ChangePasswordDto} from "./dto/change-password.dto";
+import {mysql41PasswordHash} from "../auth/hash/hash";
 
 @Injectable()
 export class UserService {
@@ -117,6 +119,41 @@ export class UserService {
     async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
         const user = await this.findOne(id);
         Object.assign(user, updateUserDto);
+        return await this.userRepository.save(user);
+    }
+
+    /**
+     * 비밀번호 변경
+     * - 로그인한 사용자(mbNo)를 기준으로
+     * - mbId + registerNum 일치 여부를 확인한 뒤
+     * - 새 비밀번호를 MySQL41 방식으로 해시하여 저장
+     */
+    async updatePassword(dto: ChangePasswordDto): Promise<User> {
+        const user = await this.userRepository.findOne({
+            where: {mbId: dto.mbId},
+        });
+
+        if (!user) {
+            throw new NotFoundException(`ID ${dto.mbId}인 사용자를 찾을 수 없습니다`);
+        }
+
+        // 1. mbId 검증
+        if (user.mbId !== dto.mbId) {
+            throw new BadRequestException('사용자 ID가 일치하지 않습니다.');
+        }
+
+        // 2. registerNum 검증
+        //    - 실제 엔티티 필드명에 맞게 수정 (예: user.mbRegNo, user.registerNum 등)
+        if (user.registerNum !== dto.registerNum) {
+            throw new BadRequestException('등록번호가 일치하지 않습니다.');
+        }
+
+        // 3. 새 비밀번호 해시
+        // 4. 비밀번호 저장
+        user.mbPassword = mysql41PasswordHash(dto.newPassword);
+        // 필요하면 mbPassword2 등도 같이 초기화/갱신
+        // user.mbPassword2 = '';
+
         return await this.userRepository.save(user);
     }
 

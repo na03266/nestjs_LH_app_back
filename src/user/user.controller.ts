@@ -16,6 +16,7 @@ import {UpdateUserDto} from './dto/update-user.dto';
 import {AuthGuard} from '../auth/guard/auth.guard';
 import {PagePaginationDto} from '../common/dto/page-pagination.dto';
 import {UserId} from "./decorator/user-id.decorator";
+import {ChangePasswordDto} from "./dto/change-password.dto";
 
 @Controller('user')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -51,9 +52,11 @@ export class UserController {
     return this.userService.update(+id, updateUserDto);
   }
 
-  @Patch(':id')
-  updatePassword(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  @Patch('password')
+  updatePassword(
+      @Body() dto: ChangePasswordDto,      // mbId, registerNum, newPassword
+  ) {
+    return this.userService.updatePassword(dto);
   }
 
   // @Delete(':id')
