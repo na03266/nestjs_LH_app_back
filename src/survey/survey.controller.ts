@@ -17,7 +17,7 @@ import {JoinSurveyDTO} from "./dto/join-survay.dto";
 import {TransactionInterceptor} from "../common/interceptor/transaction.interceptor";
 import {QueryRunner} from "../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from "typeorm/query-runner/QueryRunner";
-import {GetPostsDto} from "../board/dto/get-posts.dto";
+import {GetPostsDto} from "../base-write/dto/get-posts.dto";
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('survey')

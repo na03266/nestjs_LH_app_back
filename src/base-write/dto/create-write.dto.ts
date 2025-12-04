@@ -8,7 +8,7 @@ export class BoardFileDto {
     originalName: string;     // 실제 파일명
 }
 
-export class CreateBoardDto {
+export class CreateWriteDto {
     @IsOptional() @IsString() wrSubject: string;
     @IsString() wrContent: string;
     @IsOptional() @IsString() caName?: string;
@@ -27,7 +27,7 @@ export class CreateBoardDto {
     files?: BoardFileDto[];
 }
 
-export class CreateBoardReplyDto {
+export class CreateWriteReplyDto {
     @IsString() wrSubject: string;
     @IsString() wrContent: string;
     @IsOptional() @IsString() wrOption?: string;         // 'html1,secret,mail'

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BoardSuggestService } from './board-suggest.service';
 import { BoardSuggestController } from './board-suggest.controller';
 import {TypeOrmModule} from "@nestjs/typeorm";
-import {BoardNotice} from "../board-notice/entities/board-notice.entity";
 import {BoardFile} from "../file/entities/board_file.entity";
 import {User} from "../user/entities/user.entity";
 import {G5Board} from "../board/entities/g5-board.entity";

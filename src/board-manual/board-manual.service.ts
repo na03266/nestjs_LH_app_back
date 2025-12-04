@@ -6,10 +6,10 @@ import {User} from "../user/entities/user.entity";
 import {G5Board} from "../board/entities/g5-board.entity";
 import {CommonService} from "../common/common.service";
 import {ConfigService} from "@nestjs/config";
-import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
-import {GetPostsDto} from "../board/dto/get-posts.dto";
+import {CreateWriteDto, CreateWriteReplyDto, CreateCommentDto} from "../base-write/dto/create-write.dto";
+import {GetPostsDto} from "../base-write/dto/get-posts.dto";
 import {envVariables} from "../common/const/env.const";
-import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {UpdateWriteDto} from "../base-write/dto/update-write.dto";
 import {BoardManual} from "./entities/board-manual.entity";
 
 @Injectable()
@@ -63,7 +63,7 @@ export class BoardManualService {
 
     // 새 글
     async createPost(
-        dto: CreateBoardDto,
+        dto: CreateWriteDto,
         ip: string,
         mbNo: number,
         qr: QueryRunner,
@@ -115,7 +115,7 @@ export class BoardManualService {
     // 답변
     async replyPost(
         parentId: number,
-        dto: CreateBoardReplyDto,
+        dto: CreateWriteReplyDto,
         ip: string,
         mbNo: number,
         qr: QueryRunner,
@@ -320,7 +320,7 @@ export class BoardManualService {
     }
 
     // 수정
-    async updatePost(wrId: number, ip: string, dto: UpdateBoardDto, mbNo: number): Promise<void> {
+    async updatePost(wrId: number, ip: string, dto: UpdateWriteDto, mbNo: number): Promise<void> {
         const post = await this.findPost(wrId);
         const mb = await this.findMember(mbNo);
 

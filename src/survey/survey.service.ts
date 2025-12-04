@@ -8,7 +8,7 @@ import {SurveyResponse} from "./entities/survey-response.entity";
 import {SurveyAnswer} from "./entities/survey-answer.entity";
 import {User} from "../user/entities/user.entity";
 import {JoinSurveyDTO} from "./dto/join-survay.dto";
-import {GetPostsDto} from "../board/dto/get-posts.dto";
+import {GetPostsDto} from "../base-write/dto/get-posts.dto";
 import {CommonService} from "../common/common.service";
 
 @Injectable()

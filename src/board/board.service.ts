@@ -1,6 +1,6 @@
 import {Injectable} from '@nestjs/common';
-import {CreateBoardDto} from './dto/create-board.dto';
-import {UpdateBoardDto} from './dto/update-board.dto';
+import {CreateWriteDto} from '../base-write/dto/create-write.dto';
+import {UpdateWriteDto} from '../base-write/dto/update-write.dto';
 import {InjectRepository} from "@nestjs/typeorm";
 import {G5Board} from "./entities/g5-board.entity";
 import {Repository} from "typeorm";
@@ -13,7 +13,7 @@ export class BoardService {
     ) {
     }
 
-    create(createBoardDto: CreateBoardDto) {
+    create(createBoardDto: CreateWriteDto) {
         return 'This action adds a new board';
     }
 
@@ -30,7 +30,7 @@ export class BoardService {
         })
     }
 
-    update(id: number, updateBoardDto: UpdateBoardDto) {
+    update(id: number, updateBoardDto: UpdateWriteDto) {
         return `This action updates a #${id} board`;
     }
 

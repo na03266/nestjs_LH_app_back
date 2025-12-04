@@ -13,12 +13,12 @@ import {
 } from '@nestjs/common';
 import { BoardManualService } from './board-manual.service';
 import {TransactionInterceptor} from "../common/interceptor/transaction.interceptor";
-import {CreateBoardDto, CreateBoardReplyDto, CreateCommentDto} from "../board/dto/create-board.dto";
+import {CreateWriteDto, CreateWriteReplyDto, CreateCommentDto} from "../base-write/dto/create-write.dto";
 import {QueryRunner} from "../common/decorator/query-runner.decorator";
 import {QueryRunner as QR} from "typeorm/query-runner/QueryRunner";
 import {UserId} from "../user/decorator/user-id.decorator";
-import {GetPostsDto} from "../board/dto/get-posts.dto";
-import {UpdateBoardDto} from "../board/dto/update-board.dto";
+import {GetPostsDto} from "../base-write/dto/get-posts.dto";
+import {UpdateWriteDto} from "../base-write/dto/update-write.dto";
 import {FilesInterceptor} from "@nestjs/platform-express";
 
 @Controller('board-manual')
@@ -29,7 +29,7 @@ export class BoardManualController {
   @Post()
   @UseInterceptors(TransactionInterceptor)
   async createPost(
-      @Body() dto: CreateBoardDto,
+      @Body() dto: CreateWriteDto,
       @QueryRunner() queryRunner: QR,
       @Ip() ip: string,
       @UserId() mbNo: number,
@@ -42,7 +42,7 @@ export class BoardManualController {
   @UseInterceptors(TransactionInterceptor)
   async replyPost(
       @Query('parentId') parentId: number,
-      @Body() dto: CreateBoardReplyDto,
+      @Body() dto: CreateWriteReplyDto,
       @QueryRunner() queryRunner: QR,
       @Ip() ip: string,
       @UserId() mbNo: number,
@@ -96,7 +96,7 @@ export class BoardManualController {
   @Patch()
   async updatePost(
       @Query('wrId') wrId: number,
-      @Body() dto: UpdateBoardDto,
+      @Body() dto: UpdateWriteDto,
       @Ip() ip: string,
       @UserId() mbNo: number,
   ) {
