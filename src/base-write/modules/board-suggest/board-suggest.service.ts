@@ -2,7 +2,7 @@
 import {Injectable} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
-import {BoardNotice} from "./entity/board-notice.entity";
+import {BoardSuggest} from "./entity/board-suggest.entity";
 import {BoardFile} from "../../../file/entities/board_file.entity";
 import {User} from "../../../user/entities/user.entity";
 import {AbstractWriteService} from "../../abstract-write.service";
@@ -13,13 +13,13 @@ import {ConfigService} from "@nestjs/config";
 
 
 @Injectable()
-export class BoardNoticeService extends AbstractWriteService<BoardNotice> {
+export class BoardSuggestService extends AbstractWriteService<BoardSuggest> {
     // 이 보드가 사용하는 g5_write_* 의 bo_table 이름
-    protected readonly boTable = 'comm08';
+    protected readonly boTable = 'comm20';
 
     constructor(
-        @InjectRepository(BoardNotice)
-            boardRepo: Repository<BoardNotice>,
+        @InjectRepository(BoardSuggest)
+            boardRepo: Repository<BoardSuggest>,
         @InjectRepository(BoardFile)
             fileRepo: Repository<BoardFile>,
         @InjectRepository(User)

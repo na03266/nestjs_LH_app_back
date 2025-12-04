@@ -1,28 +1,28 @@
 // board-edu.module.ts (또는 board.module.ts 안에 함께)
 import {Module} from '@nestjs/common';
 import {TypeOrmModule} from '@nestjs/typeorm';
-import {BoardNotice} from "./entity/board-notice.entity";
+import {BoardManual} from "./entity/board-manual.entity";
 import {BoardFile} from "../../../file/entities/board_file.entity";
 import {User} from "../../../user/entities/user.entity";
 import {G5Board} from "../../../board/entities/g5-board.entity";
-import {BoardNoticeService} from "./board-notice.service";
+import {BoardManualService} from "./board-manual.service";
 import {CommonModule} from "../../../common/common.module";
-import {BoardNoticeController} from "./board-notice.controller";
+import {BoardManualController} from "./board-manual.controller";
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
-            BoardNotice,
+            BoardManual,
             BoardFile,
             User,
             G5Board,
         ]),
         CommonModule,   // CommonService 제공
     ],
-    controllers: [BoardNoticeController],
+    controllers: [BoardManualController],
     providers: [
-        BoardNoticeService,
+        BoardManualService,
     ],
-    exports: [BoardNoticeService],
+    exports: [BoardManualService],
 })
-export class BoardNoticeModule {}
+export class BoardManualModule {}

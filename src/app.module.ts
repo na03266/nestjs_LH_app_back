@@ -23,12 +23,12 @@ import {QueryFailedExceptionFilter} from "./common/filter/query-failed.filter";
 import {ThrottleInterceptor} from "./common/interceptor/throttle.interceptor";
 
 import {SurveyModule} from './survey/survey.module';
-import {BoardSuggestModule} from './board-suggest/board-suggest.module';
-import {BoardEduModule} from './board-edu/board-edu.module';
-import {BoardRiskModule} from './board-risk/board-risk.module';
-import {BoardManualModule} from './board-manual/board-manual.module';
 import {SalaryModule} from './salary/salary.module';
 import {BoardNoticeModule} from "./base-write/modules/board-notice/board-notice.module";
+import {BoardEduModule} from "./base-write/modules/board-edu/board-edu.module";
+import {BoardManualModule} from "./base-write/modules/board-manual/board-manual.module";
+import {BoardSuggestModule} from "./base-write/modules/board-suggest/board-suggest.module";
+import {BoardRiskModule} from "./base-write/modules/board-risk/board-risk.module";
 
 @Module({
     imports: [
@@ -81,11 +81,11 @@ import {BoardNoticeModule} from "./base-write/modules/board-notice/board-notice.
         DepartmentModule,
         SurveyModule,
         BoardSuggestModule,
-        BoardEduModule,
         BoardRiskModule,
         BoardManualModule,
         SalaryModule,
         BoardNoticeModule,
+        BoardEduModule,
     ],
     providers: [
         {
