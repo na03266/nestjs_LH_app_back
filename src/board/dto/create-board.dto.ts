@@ -1,4 +1,12 @@
-import {IsBoolean, IsEmail, IsEnum, IsIn, IsNumber, IsOptional, IsString, IsUrl} from "class-validator";
+import {IsArray, IsOptional, IsString, ValidateNested} from "class-validator";
+import {Type} from "class-transformer";
+export class BoardFileDto {
+    @IsString()
+    savedName: string;        // temp 저장된 파일명
+
+    @IsString()
+    originalName: string;     // 실제 파일명
+}
 
 export class CreateBoardDto {
     @IsOptional() @IsString() wrSubject: string;
@@ -12,6 +20,11 @@ export class CreateBoardDto {
     @IsOptional() @IsString() wr3?: string;
     @IsOptional() @IsString() wr4?: string;
     @IsOptional() @IsString() wr5?: string;
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => BoardFileDto)
+    files?: BoardFileDto[];
 }
 
 export class CreateBoardReplyDto {

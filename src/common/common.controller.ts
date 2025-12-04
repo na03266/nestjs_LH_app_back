@@ -3,25 +3,32 @@ import {FileInterceptor} from '@nestjs/platform-express';
 import {join} from "path";
 import * as fs from "node:fs";
 import { Response as ExpressResponse } from 'express';
+import {v4} from "uuid";
+import {diskStorage} from "multer";
 
 @Controller('common')
 export class CommonController {
 
   @Post('file')
-  @UseInterceptors(FileInterceptor('file',
-    {
-      limits: {
-        fileSize: 2000000,
-      },
-    },
-  ))
-  createFile(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  @UseInterceptors(
+      FileInterceptor('file', {
+        storage: diskStorage({
+          destination: join(process.cwd(), 'public', 'temp'),
+          filename: (req, file, cb) => {
+            const ext = file.originalname.split('.').pop();
+            const base = file.originalname.replace(`.${ext}`, '');
+            cb(null, `${v4()}_${Date.now()}_${base}.${ext}`);
+          },
+        }),
+      }),
+  )
+  uploadTemp(@UploadedFile() file: Express.Multer.File) {
     return {
-      fileName: file.filename,
+      savedName: file.filename,
+      originalName: file.originalname,
     };
   }
+
   @Post('file')
   @UseInterceptors(FileInterceptor('file',
     {

@@ -11,6 +11,7 @@ import {GetPostsDto} from "../board/dto/get-posts.dto";
 import {CommonService} from "../common/common.service";
 import {envVariables} from "../common/const/env.const";
 import {ConfigService} from "@nestjs/config";
+import {FileService} from "../common/file/file.service";
 
 @Injectable()
 export class BoardNoticeService {
@@ -21,6 +22,7 @@ export class BoardNoticeService {
         @InjectRepository(G5Board) private readonly boardRepository: Repository<G5Board>,
         private readonly commonService: CommonService,
         private readonly configService: ConfigService,
+        private readonly fileService: FileService,
     ) {
     }
 
@@ -69,12 +71,12 @@ export class BoardNoticeService {
         qr: QueryRunner,
     ) {
         const mb = await this.findMember(mbNo);
-
         const manager = qr.manager;
 
         const wrNum = await this.getNextNum();
-
         const now = new Date();
+
+        /** 1) 게시글 저장 */
         const entity = manager.create(BoardNotice, {
             wrNum: wrNum ?? '',
             wrReply: '',
@@ -101,8 +103,24 @@ export class BoardNoticeService {
         const saved = await manager.save(BoardNotice, entity);
         await manager.update(BoardNotice, {wrId: saved.wrId}, {wrParent: saved.wrId});
 
-        return saved.wrId;
+        /** 2) 파일 처리 (있을 때만) */
+        let uploadedCount = 0;
+        if (dto.files?.length) {
+            uploadedCount = await this.fileService.saveBoardFiles({
+                boTable: 'comm08',
+                wrId: saved.wrId,
+                files: dto.files,
+                manager,
+            });
+        }
+        /** wr_file 갱신 */
+        if (uploadedCount > 0) {
+            await manager.update(BoardNotice, { wrId: saved.wrId }, {
+                wrFile: uploadedCount,
+            });
+        }
 
+        return saved.wrId;
     }
 
     async findPost(wrId: number) {

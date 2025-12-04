@@ -8,33 +8,34 @@ import {MulterModule} from '@nestjs/platform-express';
 import {TasksService} from './tasks.service';
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {DeviceToken} from "../push/entities/device-token.entity";
+import {FileService} from "./file/file.service";
 
 @Module({
-    imports: [
-      TypeOrmModule.forFeature([DeviceToken]),
-      MulterModule.register({
-        storage: diskStorage({
-          destination: join(process.cwd(), 'public', 'temp'),
-          filename: (req, file, cb) => {
-            const split = file.originalname.split('.');
+        imports: [
+            TypeOrmModule.forFeature([DeviceToken]),
+            MulterModule.register({
+                storage: diskStorage({
+                    destination: join(process.cwd(), 'public', 'temp'),
+                    filename: (req, file, cb) => {
+                        const split = file.originalname.split('.');
 
-            let extension = 'mp4';
+                        let extension = 'mp4';
 
-            let filename = '';
-            if (split.length > 1) {
-              extension = split[split.length - 1];
-              filename = split[0];
-            }
+                        let filename = '';
+                        if (split.length > 1) {
+                            extension = split[split.length - 1];
+                            filename = split[0];
+                        }
 
-            cb(null, `${v4()}_${Date.now()}_${filename}.${extension}`);
-          },
-        }),
-      }),
-    ],
-    controllers: [CommonController],
-    providers: [CommonService, TasksService],
-    exports: [CommonService],
-  },
+                        cb(null, `${v4()}_${Date.now()}_${filename}.${extension}`);
+                    },
+                }),
+            }),
+        ],
+        controllers: [CommonController],
+        providers: [CommonService, TasksService, FileService],
+        exports: [CommonService, FileService],
+    },
 )
 export class CommonModule {
 }
