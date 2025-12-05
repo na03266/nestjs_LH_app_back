@@ -443,14 +443,17 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
 
+
         // 원글에 달린 댓글/답글 존재 여부 체크
-        const hasReplies = await this.boardRepo.exists({
-            where: {wrParent: post.wrId} as any,
-        });
-        if (hasReplies) {
-            throw new ForbiddenException(
-                '댓글/대댓글 삭제 후 게시글 삭제가 가능합니다.',
-            );
+        if(post.wrId != post.wrParent) {
+            const hasReplies = await this.boardRepo.exists({
+                where: {wrParent: post.wrId} as any,
+            });
+            if (hasReplies) {
+                throw new ForbiddenException(
+                    '댓글/대댓글 삭제 후 게시글 삭제가 가능합니다.',
+                );
+            }
         }
 
         await this.fileService.deleteBoardFiles({
