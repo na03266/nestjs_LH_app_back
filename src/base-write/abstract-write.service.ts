@@ -381,6 +381,10 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         ip: string,
         mbNo: number,
     ) {
+        // console.log('=== updatePost dto ===');
+        // console.log('dto 전체:', dto);
+        // console.log('dto.keepFiles:', dto.keepFiles);
+        // console.log('dto.newFiles:', dto.newFiles);
         const post = await this.findPost(wrId);
         const mb = await this.findMember(mbNo);
 
