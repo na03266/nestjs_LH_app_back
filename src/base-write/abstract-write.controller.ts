@@ -109,12 +109,6 @@ export abstract class AbstractWriteController<
         @Ip() ip: string,
         @UserId() mbNo: number,
     ) {
-        console.log('=== Controller updatePost ===');
-        console.log('wrId:', wrId);
-        console.log('dto:', dto);
-        console.log('dto.keepFiles:', dto.keepFiles);
-        console.log('dto.newFiles:', dto.newFiles);
-        console.log('dto keys:', Object.keys(dto));
         await this.service.updatePost(wrId, dto, ip, mbNo);
         return wrId;
     }

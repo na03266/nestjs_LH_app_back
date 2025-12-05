@@ -88,8 +88,7 @@ export class FileService {
         newFiles?: { savedName: string; originalName: string }[];
         manager: EntityManager;
     }): Promise<number> {
-        console.log('=== updateBoardFiles ===');
-        console.log('newFiles:', newFiles);
+
         const boardDir = join(this.GB_ROOT, boTable);
 
         if (!fs.existsSync(boardDir)) {
