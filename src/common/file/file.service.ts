@@ -91,6 +91,10 @@ export class FileService {
 
         const boardDir = join(this.GB_ROOT, boTable);
 
+        if (!fs.existsSync(boardDir)) {
+            fs.mkdirSync(boardDir, { recursive: true });
+        }
+
         /** 기존 파일 전체 조회 */
         const oldList = await manager.find(BoardFile, {
             where: { boTable, wrId },
@@ -98,112 +102,99 @@ export class FileService {
         });
 
         /**
-         * --------------------------------------------------------
-         * 1) 삭제 대상 파일 제거 (keepFiles에 없는 것들)
-         * --------------------------------------------------------
+         * 1) 삭제 대상 파일의 실제 파일만 삭제
          */
         for (const old of oldList) {
             if (!keepFiles.includes(old.bfNo)) {
-
                 const pathToDelete = join(boardDir, old.bfFile);
-                if (fs.existsSync(pathToDelete)) fs.unlinkSync(pathToDelete);
-
-                await manager.delete(BoardFile, {
-                    boTable,
-                    wrId,
-                    bfNo: old.bfNo,
-                });
+                if (fs.existsSync(pathToDelete)) {
+                    fs.unlinkSync(pathToDelete);
+                }
             }
         }
 
         /**
-         * --------------------------------------------------------
-         * 2) merge list 생성
-         *    - keepFiles 순서대로 기존 파일 push
-         *    - newFiles push
-         * --------------------------------------------------------
+         * 2) merge list 생성 - 별도 배열로 분리
          */
-        const merged: FileItem[] = [];
+        const keepItems: { bfFile: string; bfSource: string }[] = [];
+        const newItems: { savedName: string; originalName: string }[] = [];
 
-        // 2-1) 유지될 기존 파일
+        // 유지될 기존 파일
         for (const bfNo of keepFiles.sort((a, b) => a - b)) {
             const found = oldList.find(e => e.bfNo === bfNo);
             if (found) {
-                merged.push({
-                    type: 'keep',
+                keepItems.push({
                     bfFile: found.bfFile,
                     bfSource: found.bfSource,
                 });
             }
         }
 
-        // 2-2) 신규 파일
+        // 신규 파일
         for (const nf of newFiles) {
-            merged.push({
-                type: 'new',
-                savedName: nf.savedName,
-                originalName: nf.originalName,
-            });
+            if (nf.savedName && nf.originalName) {  // 유효성 검사 추가
+                newItems.push({
+                    savedName: nf.savedName,
+                    originalName: nf.originalName,
+                });
+            }
         }
 
         /**
-         * --------------------------------------------------------
-         * 3) 기존 전체 삭제 후 bfNo 0부터 재배열 삽입
-         * --------------------------------------------------------
+         * 3) DB 전체 삭제 후 bfNo 0부터 재삽입
          */
         await manager.delete(BoardFile, { boTable, wrId });
 
         let count = 0;
+        let bfNo = 0;
 
-        for (let i = 0; i < merged.length; i++) {
-            const item = merged[i];
+        // 기존 파일 먼저 삽입
+        for (const item of keepItems) {
+            const filePath = join(boardDir, item.bfFile);
+            const size = fs.existsSync(filePath) ? fs.statSync(filePath).size : 0;
 
-            if (item.type === 'keep') {
-                // 기존 파일 재입력
-                await manager.insert(BoardFile, {
-                    boTable,
-                    wrId,
-                    bfNo: i,
-                    bfSource: item.bfSource,
-                    bfFile: item.bfFile,
-                    bfDownload: 0,
-                    bfContent: '',
-                    bfFilesize: 0,
-                });
+            await manager.insert(BoardFile, {
+                boTable,
+                wrId,
+                bfNo: bfNo++,
+                bfSource: item.bfSource,
+                bfFile: item.bfFile,
+                bfDownload: 0,
+                bfContent: '',
+                bfFilesize: size,
+            });
+            count++;
+        }
 
-                count++;
-            } else {
-                // 신규 파일 이동 후 insert
-                const tempPath = join(this.TEMP_DIR, item.savedName);
-                const finalPath = join(boardDir, item.savedName);
+        // 신규 파일 삽입
+        for (const item of newItems) {
+            const tempPath = join(this.TEMP_DIR, item.savedName);
+            const finalPath = join(boardDir, item.savedName);
 
-                if (!fs.existsSync(tempPath)) {
-                    throw new InternalServerErrorException(`임시 파일 없음: ${tempPath}`);
-                }
-
-                fs.copyFileSync(tempPath, finalPath);
-                fs.unlinkSync(tempPath);
-
-                const size = fs.statSync(finalPath).size;
-
-                await manager.insert(BoardFile, {
-                    boTable,
-                    wrId,
-                    bfNo: i,
-                    bfSource: item.originalName,
-                    bfFile: item.savedName,
-                    bfDownload: 0,
-                    bfContent: '',
-                    bfFilesize: size,
-                });
-
-                count++;
+            if (!fs.existsSync(tempPath)) {
+                throw new InternalServerErrorException(`임시 파일 없음: ${tempPath}`);
             }
+
+            fs.copyFileSync(tempPath, finalPath);
+            fs.unlinkSync(tempPath);
+
+            const size = fs.statSync(finalPath).size;
+
+            await manager.insert(BoardFile, {
+                boTable,
+                wrId,
+                bfNo: bfNo++,
+                bfSource: item.originalName,
+                bfFile: item.savedName,
+                bfDownload: 0,
+                bfContent: '',
+                bfFilesize: size,
+            });
+            count++;
         }
 
         return count;
     }
-
     async deleteBoardFiles({
                                boTable,
                                wrId,

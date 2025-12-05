@@ -28,22 +28,22 @@ export class CommonController {
       originalName: file.originalname,
     };
   }
-
-  @Post('file')
-  @UseInterceptors(FileInterceptor('file',
-    {
-      limits: {
-        fileSize: 2000000,
-      },
-    },
-  ))
-  downloadFile(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    return {
-      fileName: file.filename,
-    };
-  }
+  //
+  // @Post('file')
+  // @UseInterceptors(FileInterceptor('file',
+  //   {
+  //     limits: {
+  //       fileSize: 2000000,
+  //     },
+  //   },
+  // ))
+  // downloadFile(
+  //   @UploadedFile() file: Express.Multer.File,
+  // ) {
+  //   return {
+  //     fileName: file.filename,
+  //   };
+  // }
 
   // @Get('file/:fileName')
   // async download(
