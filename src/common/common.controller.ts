@@ -73,6 +73,34 @@ export class CommonController {
         return {url};
 
     }
+    @Post('thumbnail')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            storage: diskStorage({
+                destination: join('/home/lhes/public_html/data/thumbnail'),
+                filename: (req, file, cb) => {
+                    const ext = file.originalname.split('.').pop();
+                    const base = file.originalname.replace(`.${ext}`, '');
+                    cb(null, `${v4()}_${Date.now()}_${base}.${ext}`);
+                },
+            }),
+        }),
+    )
+    uploadThumbnailImage(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            throw new BadRequestException('업로드된 파일이 없습니다.');
+        }
+
+        const host = this.configService.get<string>(envVariables.serverHost);
+
+        // /home/lhes/public_html -> http://{host}/
+        const url = `http://${host}/data/thumbnail/${file.filename}`;
+
+        // 에디터에서 요구하는 형식에 맞게 리턴
+        // 단순 문자열 vs { url: string }는 사용하는 에디터에 맞춰 선택
+        return {url};
+
+    }
 
     //
     // @Post('file')

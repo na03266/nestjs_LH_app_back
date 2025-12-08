@@ -34,6 +34,7 @@ import {BoardRiskModule} from "./base-write/modules/board-risk/board-risk.module
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
+
             validationSchema: Joi.object({
                 ENV: Joi.string().valid('dev', 'prod').required(),
                 DB_TYPE: Joi.string().valid('mysql').required(),
@@ -60,7 +61,9 @@ import {BoardRiskModule} from "./base-write/modules/board-risk/board-risk.module
                 serverHost: configService.get<string>(envVariables.serverHost),
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
                 synchronize: true,
+                logging: ['error', 'schema'], // 또는 true
             }),
+
             inject: [ConfigService],
         }),
         ServeStaticModule.forRoot({
