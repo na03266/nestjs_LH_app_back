@@ -410,6 +410,10 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             wrLast: now,
             wrIp: ip ?? post.wrIp,
             wr1: dto.wr1 ?? post.wr1,
+            wr2: dto.wr2 ?? post.wr2,
+            wr3: dto.wr3 ?? post.wr3,
+            wr4: dto.wr4 ?? post.wr4,
+            wr5: dto.wr5 ?? post.wr5,
         } as any);
 
         await this.fileService.updateBoardFiles({
