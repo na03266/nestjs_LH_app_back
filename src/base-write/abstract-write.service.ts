@@ -218,6 +218,10 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             wrLast: this.formatDateTime(now),
             wrIp: ip,
             wr1: dto.wr1 ?? '',
+            wr2: dto.wr2 ?? '',
+            wr3: dto.wr3 ?? '',
+            wr4: dto.wr4 ?? '',
+            wr5: dto.wr5 ?? '',
         } as any);
 
         const saved = await repo.save(entity as any);
