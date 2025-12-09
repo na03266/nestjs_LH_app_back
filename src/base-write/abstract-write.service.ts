@@ -134,7 +134,16 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         if (title) qb.andWhere('post.wrSubject LIKE :sub', {sub: `%${title}%`});
         if (caName) qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
         if (wr1) qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
-
+        // ⬇⬇⬇ 댓글 개수 서브쿼리 추가 (같은 테이블에서 wrParent 기준으로 카운트)
+        qb.addSelect(subQb =>
+                subQb
+                    .select('COUNT(c.wrId)', 'commentCount')
+                    .from('post', 'c')              // 같은 엔티티/테이블을 c로 한 번 더 참조
+                    .where('c.wrParent = post.wrId')   // 원글 기준 wrParent
+                    .andWhere('c.wrId != c.wrParent'), // 원글은 제외 (실제 조건에 맞게 수정 가능)
+            'commentCount',
+        );
+        // ⬆⬆⬆ 여기까지
         this.commonService.applyPagePaginationParamToQb(qb, dto);
 
         const [rows, count] = await qb.getManyAndCount();
@@ -440,23 +449,54 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         const post = await this.findPost(wrId);
 
         const boardMeta = await this.g5BoardRepo.findOne({
-            where: {boTable: this.boTable},
+            where: { boTable: this.boTable },
         });
 
-        if (
-            mb.mbLevel !== 10 &&
-            boardMeta?.boAdmin !== mb.mbId &&
-            mb.mbId !== post.mbId
-        ) {
+        // 1. 기본 권한 체크 (기존 로직 그대로 활용)
+        const isAdmin =
+            mb.mbLevel === 10 || boardMeta?.boAdmin === mb.mbId;
+        const isOwner = mb.mbId === post.mbId;
+
+        if (!isAdmin && !isOwner) {
             throw new ForbiddenException('삭제 권한이 없습니다.');
         }
 
+        // 2. 댓글 삭제인 경우 (wrIsComment = 1)
+        if (post.wrIsComment === 1) {
+            const parentId = post.wrParent;
+
+            // 2-1. 이 댓글에 달린 대댓글까지 함께 삭제할지 여부에 따라 분기
+            // (여기서는 "이 댓글 한 건만 삭제"하는 예시로 갑니다.)
+            await this.boardRepo.delete(wrId);
+
+            // 2-2. 부모 글의 현재 댓글 수 재계산
+            const commentCount = await this.boardRepo.count({
+                where: {
+                    wrParent: parentId,
+                    wrIsComment: 1,
+                } as any,
+            });
+
+            await this.boardRepo.update(parentId, {
+                wrComment: commentCount,
+            } as any);
+
+            return;
+        }
+
+        // 3. 원글 삭제인 경우 (wrIsComment = 0)
 
         // 원글에 달린 댓글/답글 존재 여부 체크
-        if(post.wrId != post.wrParent) {
+        const isRoot = post.wrId === post.wrParent;
+
+        if (isRoot) {
             const hasReplies = await this.boardRepo.exists({
-                where: {wrParent: post.wrId} as any,
+                where: {
+                    wrParent: post.wrId,
+                    wrIsComment: 1,
+                } as any,
             });
+
             if (hasReplies) {
                 throw new ForbiddenException(
                     '댓글/대댓글 삭제 후 게시글 삭제가 가능합니다.',
@@ -464,12 +504,14 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             }
         }
 
+        // 4. 첨부파일 삭제 (원글에만 해당)
         await this.fileService.deleteBoardFiles({
             boTable: this.boTable,
             wrId,
             manager: this.boardRepo.manager,
         });
 
+        // 5. 원글 삭제
         await this.boardRepo.delete(wrId);
     }
 }
