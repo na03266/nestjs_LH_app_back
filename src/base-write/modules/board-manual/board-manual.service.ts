@@ -15,7 +15,7 @@ import {ConfigService} from "@nestjs/config";
 @Injectable()
 export class BoardManualService extends AbstractWriteService<BoardManual> {
     // 이 보드가 사용하는 g5_write_* 의 bo_table 이름
-    protected readonly boTable = 'comm08';
+    protected readonly boTable = 'comm10_1';
 
     constructor(
         @InjectRepository(BoardManual)
