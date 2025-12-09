@@ -61,7 +61,7 @@ import {BoardRiskModule} from "./base-write/modules/board-risk/board-risk.module
                 serverHost: configService.get<string>(envVariables.serverHost),
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
                 synchronize: true,
-                logging: ['error', 'schema'], // 또는 true
+                // logging: ['error', 'schema'], // 또는 true
             }),
 
             inject: [ConfigService],
