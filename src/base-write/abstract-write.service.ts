@@ -134,16 +134,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         if (title) qb.andWhere('post.wrSubject LIKE :sub', {sub: `%${title}%`});
         if (caName) qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
         if (wr1) qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
-        // ⬇⬇⬇ 댓글 개수 서브쿼리 추가 (같은 테이블에서 wrParent 기준으로 카운트)
-        qb.addSelect(subQb =>
-                subQb
-                    .select('COUNT(c.wrId)', 'commentCount')
-                    .from('post', 'c')              // 같은 엔티티/테이블을 c로 한 번 더 참조
-                    .where('c.wrParent = post.wrId')   // 원글 기준 wrParent
-                    .andWhere('c.wrId != c.wrParent'), // 원글은 제외 (실제 조건에 맞게 수정 가능)
-            'commentCount',
-        );
-        // ⬆⬆⬆ 여기까지
+
         this.commonService.applyPagePaginationParamToQb(qb, dto);
 
         const [rows, count] = await qb.getManyAndCount();
