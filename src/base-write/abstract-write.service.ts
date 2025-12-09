@@ -393,7 +393,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         });
 
         if (
-            mb.mbLevel <= 4 &&
+            mb.mbLevel < 4 &&
             boardMeta?.boAdmin !== mb.mbId &&
             mb.mbId !== post.mbId
         ) {
