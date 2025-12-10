@@ -212,10 +212,11 @@ export class ChatRoomService {
         // 6) 상세 멤버 목록
         const members = room.members.map((m) => ({
             mbNo: m.mbNo,
-            name: m.mbNick ?? m.mbName ?? '',
+            name: m.mbName ?? '',
             department: m.deptSite?.name ?? '',
             registerNum: m.registerNum ?? '',
             mb5: m.mb5 ?? '',
+            mb2: m.mb2 ?? '',
         }));
 
         return {
