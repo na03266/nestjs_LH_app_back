@@ -1,4 +1,4 @@
-import {ArrayNotEmpty, IsArray, IsNotEmpty, IsNumber, IsString, MaxLength} from "class-validator";
+import {ArrayNotEmpty, IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength} from "class-validator";
 import {Type} from "class-transformer";
 
 export class CreateChatRoomDto {
@@ -7,6 +7,7 @@ export class CreateChatRoomDto {
   @MaxLength(100)
   name: string;
 
+  @IsOptional()
   @IsArray()
   @ArrayNotEmpty()
   @IsNumber(
@@ -16,4 +17,15 @@ export class CreateChatRoomDto {
   )
   @Type(() => Number)
   memberNos: number[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsNumber(
+    {}, {
+      each: true,
+    },
+  )
+  @Type(() => Number)
+  teamNos: number[];
 }

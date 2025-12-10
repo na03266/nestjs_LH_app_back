@@ -38,7 +38,7 @@ export class ChatRoomService {
         const members = await qr.manager.find(User, {
             where: {
                 mbNo: In(createChatRoomDto.memberNos)
-            }
+            },
         })
 
         if (members.length !== createChatRoomDto.memberNos.length) throw new NotFoundException('존재하지 않는 사용자가 있습니다.')
@@ -67,7 +67,7 @@ export class ChatRoomService {
                 members.map(m => ({
                     roomId,
                     mbNo: m.mbNo,
-                    roomNickName: CreateChatRoomDto.name,
+                    roomNickName: createChatRoomDto.name,
                     lastReadMessageId: null,
                     lastReadAt: null,
                 })))
@@ -83,7 +83,7 @@ export class ChatRoomService {
             })
             .execute()
 
-        const model =await qr.manager.findOne(ChatRoom, {
+        const model = await qr.manager.findOne(ChatRoom, {
             where: {id: roomId},
         });
         return model?.id;
@@ -99,34 +99,53 @@ export class ChatRoomService {
         if (name) {
             qb.where('cursor.roomNickName LIKE :name', {name: `%${name}%`});
         }
+
         qb.andWhere('cursor.mbNo = :mbNo', {mbNo: user.mbNo});
+
         const {nextCursor} = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
-        const [data, count] = await qb.getManyAndCount();
+        const [cursors, count] = await qb.getManyAndCount();
 
-        if (data.length === 0) return {
-            data: [], meta: {nextCursor, count},
-        };
+        if (cursors.length === 0) {
+            return {
+                data: [],
+                meta: {nextCursor, count},
+            };
+        }
 
-        const chatRooms = await this.chatRoomRepository.find({
-            where: {id: In(data.map(e => e.roomId))},
-            relations: ['members'],
+        // 1) 방 전체 로드 (멤버 + 메시지까지)
+        const roomIds = cursors.map((c) => c.roomId);
+        const rooms = await this.chatRoomRepository.find({
+            where: {id: In(roomIds)},
+            relations: ['members', 'messages'], // ★ messages 반드시 포함
         });
 
-        const roomsById = new Map(chatRooms.map(r => [r.id, r]));
+        const roomsById = new Map(rooms.map((r) => [r.id, r]));
 
-        const fixedData = data.map((e) => {
-            const room = roomsById.get(e.roomId);
-            const name = room?.name ?? e.room?.name ?? '';
 
-            const lastReadAt = e.lastReadId ?? new Date(0);
+        // 2) 커서 기준으로 unread 계산 + 요약 DTO 생성
+        const fixedData = cursors.map((cursor) => {
+            const room = roomsById.get(cursor.roomId);
+            if (!room) {
+                return {
+                    roomId: cursor.roomId,
+                    name: cursor.roomNickName ?? '',
+                    memberCount: 0,
+                    newMessageCount: 0,
+                };
+            }
 
-            const messages = room?.messages ?? [];
-            const unreadCount = messages.reduce((acc, m) => acc + (m.id > lastReadAt ? 1 : 0), 0);
+            const messages = room.messages ?? [];
+            const lastReadMessageId = cursor.lastReadId ?? 0;
+
+            const unreadCount = messages.reduce((acc, m) => {
+                // ChatMessage 의 PK 필드명에 맞게 수정 (예: m.id)
+                return acc + (m.id > lastReadMessageId ? 1 : 0);
+            }, 0);
 
             return {
-                roomId: e.roomId,
-                name,
-                memberCount: room?.members?.length ?? 0,
+                roomId: room.id,
+                name: cursor.roomNickName ?? room.name ?? '',
+                memberCount: room.members?.length ?? 0,
                 newMessageCount: unreadCount,
             };
         });
@@ -139,32 +158,84 @@ export class ChatRoomService {
 
 
     async findOne(roomId: number, mbNo: number) {
-        const room = await this.chatRoomRepository.findOne({
-            where: {
-                id: roomId,
-            },
-            relations: ['members'],
-        })
-        if (!room) throw new NotFoundException('채팅방을 찾을 수 없습니다.');
+        const user = await this.findUser(mbNo);
+
+        // 1) 커서 확인 (내가 이 방 멤버인지 검증)
         const cursor = await this.cursorRepository.findOne({
             where: {
-                mbNo: mbNo,
+                mbNo: user.mbNo,
                 roomId,
-            }
+            },
         });
 
-        if (!cursor) throw new BadRequestException('잘못된 요청입니다')
-        await this.cursorRepository.update(
-            {roomId: cursor.roomId, mbNo: cursor.mbNo},
-            {lastReadId: new Date().toISOString()},
-        );
+        if (!cursor) {
+            throw new BadRequestException('잘못된 요청입니다.');
+        }
 
-        return room;
+        // 2) 방 + 멤버 + 메시지 조회
+        const room = await this.chatRoomRepository.findOne({
+            where: {id: roomId},
+            relations: ['members', 'messages'],
+        });
+
+        if (!room) {
+            throw new NotFoundException('채팅방을 찾을 수 없습니다.');
+        }
+
+        const messages = room.messages ?? [];
+        const lastReadMessageId = cursor.lastReadId ?? 0;
+
+        // 3) unread 재계산
+        const unreadCount = messages.reduce((acc, m) => {
+            return acc + (m.id > lastReadMessageId ? 1 : 0);
+        }, 0);
+
+        // 4) 읽음 커서 업데이트 (마지막 메시지 기준)
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage) {
+            await this.cursorRepository.update(
+                {roomId: cursor.roomId, mbNo: cursor.mbNo},
+                {
+                    lastReadId: lastMessage.id,
+                },
+            );
+        }
+
+        // 5) 공통 요약 구조
+        const summary = {
+            roomId: room.id,
+            name: cursor.roomNickName ?? room.name ?? '',
+            memberCount: room.members?.length ?? 0,
+            newMessageCount: unreadCount,
+        };
+
+        // 6) 상세 멤버 목록
+        const members = room.members.map((m) => ({
+            mbNo: m.mbNo,
+            name: m.mbNick ?? m.mbName ?? '',
+        }));
+
+        // 7) 상세 메시지 목록
+        const resultMessages = messages.map((m) => ({
+            id: m.id,
+            authorNo: m.authorNo,              // 실제 필드명에 맞게 수정
+            senderName: m.author?.mbName ?? '',    // 실제 필드명에 맞게 수정
+            content: m.content,                // ChatMessage.content
+            createdAt: m.createdAt,            // ChatMessage.createdAt
+            isMine: m.authorNo === user.mbNo,  // 본인 메시지 여부
+            type: m.type,
+        }));
+
+        return {
+            ...summary,
+            members,
+            messages: resultMessages,
+        };
     }
 
     async update(id: string, dto: UpdateRoomDto, mbNo: number) {
         const room = await this.findOne(+id, mbNo);
-
+// todo 이부분 커서 변경 하는 걸로 전환
         room.name = dto.name;
         return await this.chatRoomRepository.save(room);
     }

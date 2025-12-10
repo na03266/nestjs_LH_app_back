@@ -8,7 +8,6 @@ import {Public} from "../auth/decorator/public.decorator";
 export class SalaryController {
   constructor(private readonly salaryService: SalaryService) {}
 
-
   @Get()
   async findAll(
       @UserId() mbNo: number,
@@ -17,7 +16,6 @@ export class SalaryController {
     const yearNum = year ? Number(year) : undefined;
     return await this.salaryService.findAll(mbNo, yearNum);
   }
-
 
   @Public()
   @Get('html/:saId')
@@ -30,5 +28,4 @@ export class SalaryController {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   }
-
 }
