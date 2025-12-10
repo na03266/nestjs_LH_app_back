@@ -214,7 +214,7 @@ export class ChatRoomService {
             mbNo: m.mbNo,
             name: m.mbNick ?? m.mbName ?? '',
             department: m.deptSite?.name ?? '',
-            registerNum: m.registerNum ?? 0,
+            registerNum: m.registerNum ?? '',
             mb5: m.mb5 ?? '',
         }));
 
