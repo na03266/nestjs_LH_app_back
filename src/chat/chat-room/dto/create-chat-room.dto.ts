@@ -9,7 +9,6 @@ export class CreateChatRoomDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
   @IsNumber(
     {}, {
       each: true,
@@ -20,7 +19,6 @@ export class CreateChatRoomDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
   @IsNumber(
     {}, {
       each: true,
