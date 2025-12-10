@@ -32,7 +32,7 @@ export class ChatMessage extends BaseTable {
   content: string | null;
 
   @Column({type: 'text', nullable: true})
-  @Transform(({ value }) => `http://localhost:3000/${value}`)
+  // @Transform(({ value }) => `http://localhost:3000/${value}`)
   filePath: string | null;
 
 }

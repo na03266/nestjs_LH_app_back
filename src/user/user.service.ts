@@ -94,7 +94,7 @@ export class UserService {
         if (!user) {
             throw new NotFoundException(`ID ${id}인 사용자를 찾을 수 없습니다`);
         }
-        console.log(user.deptSite?.id)
+
         const depart = await this.departmentRepository.findOne({
             where: {
                 id: user.deptSite?.id

@@ -175,7 +175,7 @@ export class ChatRoomService {
         // 2) 방 + 멤버 + 메시지 조회
         const room = await this.chatRoomRepository.findOne({
             where: {id: roomId},
-            relations: ['members', 'messages'],
+            relations: ['members', 'messages', 'members.deptSite'],
         });
 
         if (!room) {
@@ -213,31 +213,22 @@ export class ChatRoomService {
         const members = room.members.map((m) => ({
             mbNo: m.mbNo,
             name: m.mbNick ?? m.mbName ?? '',
-        }));
-
-        // 7) 상세 메시지 목록
-        const resultMessages = messages.map((m) => ({
-            id: m.id,
-            authorNo: m.authorNo,              // 실제 필드명에 맞게 수정
-            senderName: m.author?.mbName ?? '',    // 실제 필드명에 맞게 수정
-            content: m.content,                // ChatMessage.content
-            createdAt: m.createdAt,            // ChatMessage.createdAt
-            isMine: m.authorNo === user.mbNo,  // 본인 메시지 여부
-            type: m.type,
+            department: m.deptSite?.name ?? '',
+            registerNum: m.registerNum ?? 0,
+            mb5: m.mb5 ?? '',
         }));
 
         return {
             ...summary,
             members,
-            messages: resultMessages,
         };
     }
 
     async update(id: string, dto: UpdateRoomDto, mbNo: number) {
-        const room = await this.findOne(+id, mbNo);
-// todo 이부분 커서 변경 하는 걸로 전환
-        room.name = dto.name;
-        return await this.chatRoomRepository.save(room);
+//         const room = await this.findOne(+id, mbNo);
+// // todo 이부분 커서 변경 하는 걸로 전환
+//         room.name = dto.name;
+//         return await this.chatRoomRepository.save(room);
     }
 
     async addMember(id: string, dto: AddMembersDto, qr: QueryRunner) {
