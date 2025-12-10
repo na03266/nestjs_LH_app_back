@@ -62,17 +62,6 @@ export class ChatRoomController {
     return this.roomService.update(id, updateRoomDto, mbNo);
   }
 
-  @Patch(':id/add-member')
-  @UseInterceptors(TransactionInterceptor)
-  addMembers(
-    @Param('id') id: string,
-    @QueryRunner() qr: QR,
-    @Body() addMembersDto: AddMembersDto,
-  ) {
-    return this.roomService.addMember(id, addMembersDto, qr);
-  }
-
-
   @Delete(':id')
   remove(
     @Param('id') id: string,
