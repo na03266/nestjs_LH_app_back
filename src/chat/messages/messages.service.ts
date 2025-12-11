@@ -94,7 +94,7 @@ export class MessagesService {
         const data = rows.reverse();
         const resultMessages = data.map((m) => ({
             id: m.id,
-            author: m.author?.mbName ?? '',    // 실제 필드명에 맞게 수정
+            author: m.author,    // 실제 필드명에 맞게 수정
             createdAt: m.createdAt,            // ChatMessage.createdAt
             content: m.content,                // ChatMessage.content
             filePath: m.filePath??'',
