@@ -17,4 +17,8 @@ export class CreateMessageDto {
   @IsOptional()
   @IsString()
   fileName: string;
+
+  @IsOptional()
+  @IsString()
+  tempId: string;
 }

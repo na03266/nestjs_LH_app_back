@@ -243,7 +243,7 @@ export class ChatService {
             notifyMembers: memberNos,
             groupUnreadMembers: unreadMembers,
             // summaryByUser,
-            // tempId: dto.tempId,
+            tempId: dto.tempId,
         };
     }
 

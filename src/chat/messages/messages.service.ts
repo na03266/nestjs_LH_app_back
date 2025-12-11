@@ -98,7 +98,6 @@ export class MessagesService {
             createdAt: m.createdAt,            // ChatMessage.createdAt
             content: m.content,                // ChatMessage.content
             filePath: m.filePath??'',
-            isMine: m.authorNo === mbNo,  // 본인 메시지 여부
             type: m.type,
         }));
 

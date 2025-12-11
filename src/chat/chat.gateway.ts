@@ -106,17 +106,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
     if (!r) return this.deny(client, 'Forbidden');
 
-    const parsed = {
-      id: r.message.id,
-      author: r.message.author,
-      createdAt: r.message.createdAt,
-      content: r.message.content,
-      filePath: r.message.filePath,
-      isMine: true,
-      type: r.message.type,
-    }
+
     // 방에 실시간 메시지 브로드캐스트
-    this.server.to(`room:${r.roomId}`).emit('message:new', parsed);
+    this.server.to(`room:${r.roomId}`).emit('message:new', r.message);
 
     // 그룹 읽음 지표(마지막 메시지 기준 “안 읽은 사람 수”) 갱신
     this.server.to(`room:${r.roomId}`).emit('room:read-progress', {
