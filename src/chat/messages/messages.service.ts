@@ -80,6 +80,7 @@ export class MessagesService {
         // 2) 쿼리빌더
         const qb = this.messageRepository
             .createQueryBuilder('m')
+            .leftJoinAndSelect('m.author', 'author')
             .where('m.roomId = :roomId', {roomId})
             .orderBy('m.id', 'DESC'); // 최신부터
 
