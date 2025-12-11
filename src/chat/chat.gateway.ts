@@ -108,7 +108,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const parsed = {
       id: r.message.id,
-      author: r.message.author?.mbNo,
+      author: r.message.author?.mbName,
       createdAt: r.message.createdAt,
       content: r.message.content,
       filePath: r.message.filePath,
