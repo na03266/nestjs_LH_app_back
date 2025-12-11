@@ -81,7 +81,7 @@ export class ChatService {
     async makeRoomSummary(roomId: number, viewerMbNo: number, em: EntityManager = this.roomRepository.manager) {
         // 마지막 메시지
         const last = await em.createQueryBuilder(ChatMessage, 'm')
-            .where('m.roomId = :roomId', { roomId })
+            .where('m.roomId = :roomId', {roomId})
             .orderBy('m.id', 'DESC')
             .select([
                 'm.id AS id',
@@ -97,11 +97,11 @@ export class ChatService {
 
         // 내 안 읽은 개수
         const qb = em.createQueryBuilder(ChatMessage, 'm')
-            .where('m.roomId = :roomId', { roomId });
+            .where('m.roomId = :roomId', {roomId});
 
         if (cursor?.lastReadId) {
             // 커서 이후 메시지만 카운트
-            qb.andWhere('m.id > :lastReadId', { lastReadId: cursor.lastReadId });
+            qb.andWhere('m.id > :lastReadId', {lastReadId: cursor.lastReadId});
         }
 
         const myUnreadCount = await qb.getCount();
@@ -198,7 +198,7 @@ export class ChatService {
             dto.messageType === MessageType.FILE ||
             dto.messageType === MessageType.IMAGE
         ) {
-            if (!dto.fileName) {
+            if (!dto.fileName || filePath.length == 0) {
                 throw new BadRequestException('fileName이 필요합니다.');
             }
 
@@ -216,8 +216,6 @@ export class ChatService {
             fileName: filePath,
         });
 
-
-        await this.renameFile(tempFolder, fileFolder, dto);
 
         // 4) 보낸 사람 커서 즉시 읽음 처리(내 unread 0 유지)
         await em.createQueryBuilder()
