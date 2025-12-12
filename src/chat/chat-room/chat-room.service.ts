@@ -191,11 +191,13 @@ export class ChatRoomService {
             }
 
             const messages = room.messages ?? [];
-            const lastReadMessageId = cursor.lastReadId ?? 0;
-
+            const lastReadId = cursor.lastReadId
+                ? BigInt(cursor.lastReadId)
+                : BigInt(0);
             const unreadCount = messages.reduce((acc, m) => {
-                // ChatMessage 의 PK 필드명에 맞게 수정 (예: m.id)
-                return acc + (m.id > lastReadMessageId ? 1 : 0);
+                const mid = BigInt(m.id);
+                if (!mid) return acc; // NaN 방어
+                return acc + (mid > lastReadId ? 1 : 0);
             }, 0);
 
             return {
