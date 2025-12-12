@@ -35,7 +35,6 @@ export class CommonService {
 
         if (cursor) {
             const decodedCursor = Buffer.from(cursor, 'base64').toString('utf-8');
-            console.log(decodedCursor);
             const cursorObj = JSON.parse(decodedCursor);
             order = cursorObj.order;
             const {values} = cursorObj;
