@@ -7,6 +7,7 @@ import {ChatCursor} from "../cursor/entities/chat-cursor.entity";
 import {ChatRoom} from "./entities/chat-room.entity";
 import {CommonModule} from "../../common/common.module";
 import {Department} from "../../department/entities/department.entity";
+import {ChatMessage} from "../messages/entities/chat-message.entity";
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import {Department} from "../../department/entities/department.entity";
             ChatRoom, User,
             ChatCursor,
             Department,
+            ChatMessage,
         ]),
         CommonModule,
     ],

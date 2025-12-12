@@ -9,7 +9,6 @@ import {ChatCursor} from "../cursor/entities/chat-cursor.entity";
 import {ChatMessage, MessageType} from "../messages/entities/chat-message.entity";
 import {GetChatRoomsDto} from "./dto/get-chat-rooms.dto";
 import {CommonService} from "../../common/common.service";
-import {AddMembersDto} from "./dto/add-members.dto";
 import {Department} from "../../department/entities/department.entity";
 
 @Injectable()
@@ -21,6 +20,8 @@ export class ChatRoomService {
         private readonly chatRoomRepository: Repository<ChatRoom>,
         @InjectRepository(ChatCursor)
         private readonly cursorRepository: Repository<ChatCursor>,
+        @InjectRepository(ChatMessage)
+        private readonly messageRepository: Repository<ChatMessage>,
         @InjectRepository(Department)
         private readonly departmentRepository: Repository<Department>,
         private readonly commonService: CommonService,
@@ -230,41 +231,37 @@ export class ChatRoomService {
             throw new BadRequestException('잘못된 요청입니다.');
         }
 
-        // 2) 방 + 멤버 + 메시지 조회
+        // 2) 방 + 멤버만 조회 (messages는 굳이 안 끌고 옴)
         const room = await this.chatRoomRepository.findOne({
-            where: {id: roomId},
-            relations: ['members', 'messages', 'members.deptSite'],
+            where: { id: roomId },
+            relations: ['members', 'members.deptSite'],
         });
 
         if (!room) {
             throw new NotFoundException('채팅방을 찾을 수 없습니다.');
         }
 
-        const messages = room.messages ?? [];
-        const lastReadMessageId = cursor.lastReadId ?? 0;
+        // 3) 최신 메시지 1개만 따로 조회 (createdAt 기준이든 id 기준이든 한 가지로 통일)
+        const lastMessage = await this.messageRepository.findOne({
+            where: { room: { id: roomId } },
+            order: { id: 'DESC' },       // 또는 createdAt: 'DESC'
+            select: ['id'],              // id만 필요하면 select 최소화
+        });
 
-        // 3) unread 재계산
-        const unreadCount = messages.reduce((acc, m) => {
-            return acc + (m.id > lastReadMessageId ? 1 : 0);
-        }, 0);
-
-        // 4) 읽음 커서 업데이트 (마지막 메시지 기준)
-        const lastMessage = messages[messages.length - 1];
+        // 4) 커서 업데이트만 수행 (이 메서드에서는 unreadCount는 무조건 0으로 본다)
         if (lastMessage) {
             await this.cursorRepository.update(
-                {roomId: cursor.roomId, mbNo: cursor.mbNo},
-                {
-                    lastReadId: lastMessage.id,
-                },
+                { roomId: cursor.roomId, mbNo: cursor.mbNo },
+                { lastReadId: lastMessage.id },
             );
         }
 
-        // 5) 공통 요약 구조
+        // 5) 요약 정보: 여기서는 "방에 들어온 시점"이므로 newMessageCount = 0 고정
         const summary = {
             roomId: room.id,
             name: cursor.roomNickName ?? room.name ?? '',
             memberCount: room.members?.length ?? 0,
-            newMessageCount: unreadCount,
+            newMessageCount: 0,   // 이 메서드의 정책: 상세 들어오면 모두 읽은 걸로 처리
         };
 
         // 6) 상세 멤버 목록
@@ -282,7 +279,6 @@ export class ChatRoomService {
             members,
         };
     }
-
     async update(id: string, dto: UpdateRoomDto, mbNo: number) {
         const roomId = Number(id);
 
