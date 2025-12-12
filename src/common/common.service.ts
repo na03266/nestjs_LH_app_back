@@ -35,16 +35,17 @@ export class CommonService {
 
         if (cursor) {
             const decodedCursor = Buffer.from(cursor, 'base64').toString('utf-8');
+            console.log(decodedCursor);
             const cursorObj = JSON.parse(decodedCursor);
-            order = cursorObj.cursor;
-            const {values} = cursorObj.values;
+            order = cursorObj.order;
+            const {values} = cursorObj;
 
             /// (movie.column1, movie.column2, movie.column3) > (:value1, :value2, :value3)
             const columns = Object.keys(values);
             const comparisonOperator = order.some((o) => o.endsWith('DESC')) ? '<' : '>';
-            const whereConditions = columns.map(c => `${qb.alias}.${columns}`).join(',');
+            const whereConditions = columns.map(c => `${qb.alias}.${c}`).join(',');
             const whereParams = columns.map(c => `:${c}`).join(',');
-            qb.where(`(${whereConditions}) ${comparisonOperator} (${whereParams})`, values);
+            qb.andWhere(`(${whereConditions}) ${comparisonOperator} (${whereParams})`, values);
         }
         // ["id_DESC", "likeCount_DESC"]
         for (let i = 0; i < order.length; i++) {
@@ -81,13 +82,15 @@ export class CommonService {
          * }
          */
         const lastItem = results[results.length - 1];
-        const value = {};
+
+        const values = {};
+
         order.forEach((columnOrder) => {
             const [column] = columnOrder.split('_');
-            value[column] = lastItem[column];
+            values[column] = lastItem[column];
         });
 
-        const cursorObj = {value, order};
+        const cursorObj = {values, order};
         const nextCursor = Buffer.from(JSON.stringify(cursorObj)).toString('base64');
 
         return nextCursor;
