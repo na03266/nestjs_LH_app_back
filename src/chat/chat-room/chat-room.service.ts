@@ -140,7 +140,7 @@ export class ChatRoomService {
             .execute();
 
         const model = await qr.manager.findOne(ChatRoom, {
-            where: { id: roomId },
+            where: {id: roomId},
         });
 
         return model?.id;
@@ -233,7 +233,7 @@ export class ChatRoomService {
 
         // 2) 방 + 멤버만 조회 (messages는 굳이 안 끌고 옴)
         const room = await this.chatRoomRepository.findOne({
-            where: { id: roomId },
+            where: {id: roomId},
             relations: ['members', 'members.deptSite'],
         });
 
@@ -243,16 +243,16 @@ export class ChatRoomService {
 
         // 3) 최신 메시지 1개만 따로 조회 (createdAt 기준이든 id 기준이든 한 가지로 통일)
         const lastMessage = await this.messageRepository.findOne({
-            where: { room: { id: roomId } },
-            order: { id: 'DESC' },       // 또는 createdAt: 'DESC'
+            where: {room: {id: roomId}},
+            order: {id: 'DESC'},       // 또는 createdAt: 'DESC'
             select: ['id'],              // id만 필요하면 select 최소화
         });
 
         // 4) 커서 업데이트만 수행 (이 메서드에서는 unreadCount는 무조건 0으로 본다)
         if (lastMessage) {
             await this.cursorRepository.update(
-                { roomId: cursor.roomId, mbNo: cursor.mbNo },
-                { lastReadId: lastMessage.id },
+                {roomId: cursor.roomId, mbNo: cursor.mbNo},
+                {lastReadId: lastMessage.id},
             );
         }
 
@@ -279,6 +279,7 @@ export class ChatRoomService {
             members,
         };
     }
+
     async update(id: string, dto: UpdateRoomDto, mbNo: number) {
         const roomId = Number(id);
 
@@ -296,7 +297,7 @@ export class ChatRoomService {
 
         // 2) 방 + 기존 멤버 로드
         const room = await this.chatRoomRepository.findOne({
-            where: { id: roomId },
+            where: {id: roomId},
             relations: ['members'],
         });
 
@@ -402,7 +403,7 @@ export class ChatRoomService {
         // C. 최종 방 정보 리턴 (멤버 포함)
         // ─────────────────────────
         const updated = await this.chatRoomRepository.findOne({
-            where: { id: roomId },
+            where: {id: roomId},
             relations: ['members'],
         });
 

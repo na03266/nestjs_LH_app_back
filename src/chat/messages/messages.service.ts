@@ -1,4 +1,4 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {QueryRunner, Repository} from "typeorm";
 import {WsException} from "@nestjs/websockets";
 import {User} from "../../user/entities/user.entity";
@@ -113,8 +113,8 @@ export class MessagesService {
     async remove(id: string, mbNo: number) {
         const message = await this.messageRepository.findOne({where: {id}, relations: ['author']});
 
-        if (!message) throw new WsException('메시지를 찾을 수 없습니다.');
-        if (message.authorNo !== mbNo) throw new WsException('본인이 작성한 메시지만 삭제할 수 있습니다.');
+        if (!message) throw new NotFoundException('메시지를 찾을 수 없습니다.');
+        if (message.authorNo !== mbNo) throw new BadRequestException('본인이 작성한 메시지만 삭제할 수 있습니다.');
 
         await this.messageRepository.softDelete({id});
         return id;

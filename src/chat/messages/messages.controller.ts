@@ -36,6 +36,7 @@ export class MessagesController {
   ) {
     return this.messagesService.getMessages(dto, mbNo);
   }
+
   @Delete(':id')
   remove(
     @Param('id') id: string,
