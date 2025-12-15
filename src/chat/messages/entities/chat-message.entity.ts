@@ -5,34 +5,34 @@ import {BaseTable} from "../../../common/entity/base-table.entity";
 import {ChatRoom} from "../../chat-room/entities/chat-room.entity";
 import {Transform} from "class-transformer";
 
-export enum MessageType { SYSTEM, TEXT, IMAGE, FILE }
+export enum MessageType { SYSTEM, TEXT, FILE, IMAGE }
 
 @Entity()
 export class ChatMessage extends BaseTable {
-  @PrimaryGeneratedColumn({type: 'bigint'})
-  id: string;
+    @PrimaryGeneratedColumn({type: 'bigint'})
+    id: string;
 
-  @ManyToOne(
-    () => ChatRoom,
-    room => room.messages,
-    {onDelete: 'CASCADE', eager: false})
-  room: ChatRoom;
+    @ManyToOne(
+        () => ChatRoom,
+        room => room.messages,
+        {onDelete: 'CASCADE', eager: false})
+    room: ChatRoom;
 
-  @Column()
-  authorNo: number;
+    @Column()
+    authorNo: number;
 
-  @ManyToOne(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})
-  @JoinColumn({name: 'authorNo', referencedColumnName: 'mbNo'})
-  author: User | null;
+    @ManyToOne(() => User, {onDelete: 'CASCADE', eager: false, createForeignKeyConstraints: false})
+    @JoinColumn({name: 'authorNo', referencedColumnName: 'mbNo'})
+    author: User | null;
 
-  @Column({type: 'enum', enum: MessageType, default: MessageType.TEXT})
-  type: MessageType;
+    @Column({type: 'enum', enum: MessageType, default: MessageType.TEXT})
+    type: MessageType;
 
-  @Column({type: 'text', nullable: true})
-  content: string | null;
+    @Column({type: 'text', nullable: true})
+    content: string | null;
 
-  @Column({type: 'text', nullable: true})
-  // @Transform(({ value }) => `http://localhost:3000/${value}`)
-  filePath: string | null;
+    @Column({type: 'text', nullable: true})
+        // @Transform(({ value }) => `http://localhost:3000/${value}`)
+    filePath: string | null;
 
 }

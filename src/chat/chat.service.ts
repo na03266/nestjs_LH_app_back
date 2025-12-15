@@ -7,8 +7,6 @@ import {ChatRoom} from "./chat-room/entities/chat-room.entity";
 import {ChatMessage, MessageType} from "./messages/entities/chat-message.entity";
 import {CreateMessageDto} from "./messages/dto/create-message.dto";
 import {ChatCursor} from "./cursor/entities/chat-cursor.entity";
-import {join} from "path";
-import {rename} from "node:fs/promises";
 
 @Injectable()
 export class ChatService {
@@ -144,14 +142,6 @@ export class ChatService {
         }
     }
 
-    // ───────────────────────── 메시지 생성 (전송 비의존) ─────────────────────────
-    renameFile(tempFolder: string, fileFolder: string, createMessageDto: CreateMessageDto) {
-        return rename(
-            join(process.cwd(), tempFolder, createMessageDto.fileName),
-            join(process.cwd(), fileFolder, createMessageDto.fileName),
-        );
-    }
-
     /**
      * 메시지 생성(트랜잭션 내)
      * 게이트웨이는 반환값을 받아 방/사용자 룸으로 emit만 하면 됨.
@@ -196,7 +186,7 @@ export class ChatService {
             room: chatRoom,
             content: message,
             type: dto.messageType ?? MessageType.TEXT,
-            filePath: dto.fileName,
+            filePath: dto.filePath,
         });
 
 

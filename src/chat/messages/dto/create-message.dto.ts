@@ -16,7 +16,7 @@ export class CreateMessageDto {
 
   @IsOptional()
   @IsString()
-  fileName: string;
+  filePath: string;
 
   @IsOptional()
   @IsString()
