@@ -412,17 +412,25 @@ export class ChatRoomService {
 
     async remove(id: number, mbNo: number) {
         const user = await this.findUser(mbNo);
-        const room = await this.cursorRepository.findOne({
+
+        // RoomCursor 조회
+        const cursor = await this.cursorRepository.findOne({
             where: {
                 roomId: id,
                 mbNo: user.mbNo,
-            }
+            },
         });
 
-        // 커서도 모두 삭제,
-        if (!room) throw new NotFoundException('방을 찾을 수 없습니다.');
+        if (!cursor) {
+            throw new NotFoundException('방을 찾을 수 없습니다.');
+        }
 
-        await this.cursorRepository.softDelete({room});
+        // ✅ relation(room)이 아니라, PK(id) 기준으로 soft delete
+        await this.cursorRepository.softDelete({
+            roomId: cursor.roomId,
+            mbNo: cursor.mbNo,
+        });
+
         return id;
     }
 }

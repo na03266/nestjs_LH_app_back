@@ -179,7 +179,7 @@ export class ChatService {
         const ok = await this.isRoomMember(roomId, user.mbNo, em);
         if (!ok) throw new ForbiddenException('채팅방 멤버가 아닙니다.');
 
-        console.log(dto);
+        // console.log(dto);
 
         const saved = await em.save(ChatMessage, {
             author: user,
