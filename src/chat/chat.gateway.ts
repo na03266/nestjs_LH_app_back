@@ -73,11 +73,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const user = client.data?.user;
         if (!user) return this.deny(client, 'Unauthorized');
 
-        // 멤버십 검증(서비스가 비즈로직 담당)
         await this.chatService.ensureJoinable(body.roomId, user.mbNo ?? user.sub);
-        client.join(`room:${body.roomId}`);
-        client.emit('room:joined', {roomId: body.roomId});
 
+        client.join(`room:${body.roomId}`);
+        client.emit('room:joined', { roomId: body.roomId });
+
+        // ★ 방 커서 정보 전송
+        const cursors = await this.chatService.getRoomCursors(body.roomId);
+        client.emit('room:cursors', {
+            roomId: body.roomId,
+            cursors, // [{ mbNo, lastReadId }, ...]
+        });
     }
 
     @SubscribeMessage('leave-room')
@@ -155,6 +161,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(`room:${body.roomId}`).emit('room:read-progress', {
             roomId: body.roomId,
             unreadMembers: r.groupUnreadMembers,
+        });
+
+        // ★ 방에 있는 모두에게 "이 유저 커서 올랐다" 알리기
+        this.server.to(`room:${body.roomId}`).emit('cursor:updated', {
+            roomId: body.roomId,
+            mbNo: user.mbNo ?? user.sub,
+            lastReadId: body.lastReadMessageId ?? null,
         });
 
         client.emit('cursor:ack', {roomId: body.roomId, lastReadMessageId: body.lastReadMessageId ?? null});

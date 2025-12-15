@@ -268,4 +268,19 @@ export class ChatService {
 
         return {summaryForUser, groupUnreadMembers};
     }
+
+    // chat.service.ts
+    async getRoomCursors(
+        roomId: number,
+        em: EntityManager = this.cursorRepository.manager,
+    ): Promise<{ mbNo: number; lastReadId: string | null }[]> {
+        const rows = await em
+            .createQueryBuilder()
+            .select(['c.mbNo AS mbNo', 'c.lastReadId AS lastReadId'])
+            .from(ChatCursor, 'c')
+            .where('c.roomId = :roomId', { roomId })
+            .getRawMany<{ mbNo: number; lastReadId: string | null }>();
+
+        return rows;
+    }
 }
