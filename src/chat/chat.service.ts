@@ -189,31 +189,14 @@ export class ChatService {
         const ok = await this.isRoomMember(roomId, user.mbNo, em);
         if (!ok) throw new ForbiddenException('채팅방 멤버가 아닙니다.');
 
-        const fileFolder = join('public', 'file');
-        const tempFolder = join('public', 'temp');
+        console.log(dto);
 
-        let filePath: string = '';
-        // 1) 파일/이미지 타입일 때만 파일 처리
-        if (
-            dto.messageType === MessageType.FILE ||
-            dto.messageType === MessageType.IMAGE
-        ) {
-            if (!dto.fileName || filePath.length == 0) {
-                throw new BadRequestException('fileName이 필요합니다.');
-            }
-
-            filePath = join(fileFolder, dto.fileName);
-
-            await this.renameFile(tempFolder, fileFolder, dto);
-        }
-
-        // 2) 메시지 저장
         const saved = await em.save(ChatMessage, {
             author: user,
             room: chatRoom,
             content: message,
             type: dto.messageType ?? MessageType.TEXT,
-            fileName: filePath,
+            filePath: dto.fileName,
         });
 
 
