@@ -1,6 +1,6 @@
-import { IsString, IsObject, IsOptional } from 'class-validator';
+import {IsString, IsObject, IsOptional, IsNumber} from 'class-validator';
 export class SendToUserDto {
-  @IsString() mbNo: number;
+  @IsNumber() mbNo: number;
   @IsString() title: string;
   @IsString() body: string;
   @IsOptional() @IsObject() data?: Record<string, string>;

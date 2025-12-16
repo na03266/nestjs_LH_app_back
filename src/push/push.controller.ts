@@ -10,36 +10,36 @@ import {Public} from "../auth/decorator/public.decorator";
 
 @Controller('push')
 export class PushController {
-  constructor(private readonly push: PushService) {}
+    constructor(private readonly push: PushService) {
+    }
 
-  @Public()
-  @Post('register')
-  async register(@UserId() mbNo: number, @Body() dto: RegisterTokenDto) {
-    await this.push.upsertToken(mbNo, dto);
-    return { ok: true };
-  }
+    @Post('register')
+    async register(@UserId() mbNo: number, @Body() dto: RegisterTokenDto) {
+        await this.push.upsertToken(mbNo, dto);
+        return {ok: true};
+    }
 
-  @Public()
-  @Post('send/user')
-  async sendToUser(@Body() dto: SendToUserDto) {
-    const res = await this.push.sendToUser(dto.mbNo, dto.title, dto.body, dto.data);
-    return res;
-  }
+    @Public()
+    @Post('send/user')
+    async sendToUser(@Body() dto: SendToUserDto) {
+        const res = await this.push.sendToUser(dto.mbNo, dto.title, dto.body, dto.data);
+        return res;
+    }
 
-  @Public()
-  @Post('send/topic')
-  async sendToTopic(@Body() dto: SendToTopicDto) {
-    return await this.push.sendToTopic(dto.topic, dto.title, dto.body, dto.data);
-  }
+    @Public()
+    @Post('send/topic')
+    async sendToTopic(@Body() dto: SendToTopicDto) {
+        return await this.push.sendToTopic(dto.topic, dto.title, dto.body, dto.data);
+    }
 
-  @Public()
-  @Post('validate/:token')
-  async validate(@Param('token') token: string) {
-    return this.push.validateToken(token);
-  }
+    @Public()
+    @Post('validate/:token')
+    async validate(@Param('token') token: string) {
+        return this.push.validateToken(token);
+    }
 
-  @Post('subscribe/:userId/:topic')
-  async subscribe(@Param('userId') userId: number, @Param('topic') topic: string) {
-    return this.push.subscribeUserToTopic(userId, topic);
-  }
+    @Post('subscribe/:userId/:topic')
+    async subscribe(@Param('userId') userId: number, @Param('topic') topic: string) {
+        return this.push.subscribeUserToTopic(userId, topic);
+    }
 }
