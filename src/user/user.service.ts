@@ -87,7 +87,8 @@ export class UserService {
         const user = await this.userRepository.findOne({
             where: {mbNo: id},
             relations: {
-                deptSite: true
+                deptSite: true,
+
             }
         });
 
@@ -99,11 +100,12 @@ export class UserService {
             where: {
                 id: user.deptSite?.id
             },
-            relations: {parent: true}
+            relations: {parent: true, }
         });
 
         return {
             ...user,
+            deptSite: depart,
             mbDepart: depart?.parent?.name !== '대표이사' && depart?.parent !== null
                 ? `${depart?.parent?.name ?? ''} ${depart?.name}`
                 : `${depart?.name}`
