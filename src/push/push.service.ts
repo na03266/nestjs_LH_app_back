@@ -6,6 +6,8 @@ import {FirebaseError} from 'firebase-admin';
 import {DeviceToken} from './entities/device-token.entity';
 import {PushLog} from './entities/push-log.entity';
 import {RegisterTokenDto} from './dto/register-token.dto';
+import {NotificationLog} from "../notification/entities/notification.entity";
+import {User} from "../user/entities/user.entity";
 
 @Injectable()
 export class PushService {
@@ -14,6 +16,8 @@ export class PushService {
     constructor(
         @InjectRepository(DeviceToken) private readonly tokenRepo: Repository<DeviceToken>,
         @InjectRepository(PushLog) private readonly logRepo: Repository<PushLog>,
+        @InjectRepository(User) private readonly userRepo: Repository<User>,
+        @InjectRepository(NotificationLog) private readonly notificationRepo: Repository<NotificationLog>,
         @Inject('FIREBASE_ADMIN') private readonly fb: admin.app.App,
     ) {
     }
@@ -61,6 +65,7 @@ export class PushService {
                 this.logRepo.save(this.logRepo.create({
                     mbNo, token, title, body, data: data, success: true,
                 }));
+                this.notificationRepo.save({mbNo, title, body, data: data,})
             } else {
                 const code = (r.error as any)?.code || (r.error as any)?.errorInfo?.code || 'unknown';
                 const msg = (r.error as FirebaseError).message;
@@ -76,13 +81,66 @@ export class PushService {
         return {successCount: res.successCount, failureCount: res.failureCount};
     }
 
-    async sendToTopic(topic: string, title: string, body: string, data?: Record<string, string>) {
+    async sendToTopic(topic: string, title: string, body: string, data?: Record<string, any>) {
         const messaging = this.fb.messaging();
         const msg = this.buildMessageBase(title, body, data);
         const id = await messaging.send({topic, ...msg});
         await this.logRepo.save(this.logRepo.create({
             topic, title, body, data: data, success: true,
         }));
+
+        const tokenRows = await this.tokenRepo.find({
+            where: {optIn: true},
+            select: ['mbNo'],
+        });
+        const candidateMbNos = [...new Set(tokenRows.map(r => r.mbNo))];
+
+        let targetMbNos: number[] = [];
+
+        if (topic === 'all') {
+            targetMbNos = candidateMbNos;
+        } else if (topic === 'office') {
+            // 직무명 mb5가 행정/경영지원/안전관리
+            const officeJobs = ['행정', '경영지원', '안전관리'];
+
+            const users = await this.userRepo.find({
+                where: {mbNo: In(candidateMbNos), mb5: In(officeJobs)},
+                select: ['mbNo'],
+            });
+            targetMbNos = users.map(u => u.mbNo);
+        } else if (topic === 'tech') {
+            // officeJobs 제외
+            const officeJobs = ['행정', '경영지원', '안전관리'];
+
+            const users = await this.userRepo
+                .createQueryBuilder('u')
+                .select(['u.mbNo'])
+                .where('u.mbNo IN (:...mbNos)', {mbNos: candidateMbNos})
+                .andWhere('(u.mb5 IS NULL OR u.mb5 NOT IN (:...officeJobs))', {officeJobs})
+                .getMany();
+
+            targetMbNos = users.map(u => u.mbNo);
+        } else {
+            // topic이 부서(deptSite) 코드/명이라고 가정
+            const users = await this.userRepo.find({
+                where: {mbNo: In(candidateMbNos), deptSite: {id: Number(topic)}},
+                select: ['mbNo'],
+            });
+            targetMbNos = users.map(u => u.mbNo);
+        }
+        // 3) NotificationLog(개인별 알림함 row) bulk insert
+        if (targetMbNos.length) {
+            const payload = targetMbNos.map(mbNo => ({
+                mbNo,
+                title,
+                body,
+                data, // 알림 클릭/추적용
+                isRead: false,
+                readAt: null,
+            }));
+
+            await this.notificationRepo.insert(payload);
+        }
         return {messageId: id};
     }
 

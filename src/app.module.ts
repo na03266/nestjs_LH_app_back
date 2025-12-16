@@ -29,6 +29,7 @@ import {BoardEduModule} from "./base-write/modules/board-edu/board-edu.module";
 import {BoardManualModule} from "./base-write/modules/board-manual/board-manual.module";
 import {BoardSuggestModule} from "./base-write/modules/board-suggest/board-suggest.module";
 import {BoardRiskModule} from "./base-write/modules/board-risk/board-risk.module";
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
     imports: [
@@ -89,6 +90,7 @@ import {BoardRiskModule} from "./base-write/modules/board-risk/board-risk.module
         SalaryModule,
         BoardNoticeModule,
         BoardEduModule,
+        NotificationModule,
     ],
     providers: [
         {
