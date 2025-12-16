@@ -1,4 +1,4 @@
-import {Body, Controller, Param, Post} from '@nestjs/common';
+import {Body, Controller, Get, Param, Post} from '@nestjs/common';
 import {PushService} from './push.service';
 import {RegisterTokenDto} from './dto/register-token.dto';
 import {SendToUserDto} from './dto/send-to-user.dto';
@@ -38,8 +38,14 @@ export class PushController {
         return this.push.validateToken(token);
     }
 
-    @Post('subscribe/:userId/:topic')
-    async subscribe(@Param('userId') userId: number, @Param('topic') topic: string) {
-        return this.push.subscribeUserToTopic(userId, topic);
+    @Post('subscribe/:topic')
+    async subscribe(@UserId() mbNo: number, @Param('topic') topic: string) {
+        return this.push.subscribeUserToTopic(mbNo, topic);
+    }
+
+    @Get()
+    async findAll(@UserId() mbNo: number,
+    ) {
+
     }
 }
