@@ -8,6 +8,7 @@ import {G5Board} from "../../../board/entities/g5-board.entity";
 import {BoardNoticeService} from "./board-notice.service";
 import {CommonModule} from "../../../common/common.module";
 import {BoardNoticeController} from "./board-notice.controller";
+import {PushModule} from "../../../push/push.module";
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import {BoardNoticeController} from "./board-notice.controller";
             G5Board,
         ]),
         CommonModule,   // CommonService 제공
+        PushModule,
     ],
     controllers: [BoardNoticeController],
     providers: [

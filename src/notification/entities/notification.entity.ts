@@ -12,6 +12,7 @@ export class NotificationLog {
     body: string;
     @Column({type: 'json', nullable: true})
     data: Record<string, any> | null;
+
     @CreateDateColumn()
     sentAt: Date;
     @Column({default: false})

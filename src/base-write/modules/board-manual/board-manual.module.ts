@@ -8,6 +8,7 @@ import {G5Board} from "../../../board/entities/g5-board.entity";
 import {BoardManualService} from "./board-manual.service";
 import {CommonModule} from "../../../common/common.module";
 import {BoardManualController} from "./board-manual.controller";
+import {PushModule} from "../../../push/push.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import {BoardManualController} from "./board-manual.controller";
             User,
             G5Board,
         ]),
+        PushModule,
         CommonModule,   // CommonService 제공
     ],
     controllers: [BoardManualController],
@@ -25,4 +27,5 @@ import {BoardManualController} from "./board-manual.controller";
     ],
     exports: [BoardManualService],
 })
-export class BoardManualModule {}
+export class BoardManualModule {
+}
