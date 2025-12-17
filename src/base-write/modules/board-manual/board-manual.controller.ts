@@ -23,4 +23,21 @@ export class BoardManualController extends AbstractWriteController<BoardManualSe
             {wrId: String(post)}, // data는 문자열로
         );
     }
+
+    protected override async afterCreateComment(comment: any, ctx: any) {
+        await this.pushService.sendToUser(
+            ctx.mbNo,
+            String(ctx.dto.caName ?? ''),
+            String(ctx.dto.wrSubject ?? ''),
+            {wrId: String(ctx.parentId)}, // data는 문자열로
+        );
+    }
+    protected override async afterCreateReplyToComment(comment: any, ctx: any) {
+        await this.pushService.sendToUser(
+            ctx.mbNo,
+            String(ctx.dto.caName ?? ''),
+            String(ctx.dto.wrSubject ?? ''),
+            {wrId: String(ctx.parentId)}, // data는 문자열로
+        );
+    }
 }

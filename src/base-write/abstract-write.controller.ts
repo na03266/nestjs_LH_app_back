@@ -71,8 +71,8 @@ export abstract class AbstractWriteController<
         @Ip() ip: string,
         @UserId() mbNo: number,
     ) {
-        const comment = this.service.createComment(parentId, dto, ip, mbNo, queryRunner);
-        await this.afterCreateComment(comment, {dto, ip, mbNo, queryRunner});
+        const comment = await this.service.createComment(parentId, dto, ip, mbNo, queryRunner);
+        await this.afterCreateComment(comment, {parentId, dto, ip, mbNo, queryRunner});
         return comment;
     }
 
@@ -91,7 +91,7 @@ export abstract class AbstractWriteController<
         @Ip() ip: string,
         @UserId() mbNo: number,
     ) {
-        return this.service.createComment(
+        const comment = await this.service.createComment(
             parentId,
             dto,
             ip,
@@ -99,6 +99,19 @@ export abstract class AbstractWriteController<
             queryRunner,
             commentId,
         );
+        await this.afterCreateReplyToComment(comment, {
+            parentId,
+            dto,
+            ip,
+            mbNo,
+            queryRunner,
+            commentId,
+        });
+        return comment;
+    }
+
+    protected async afterCreateReplyToComment(_comment: any, _ctx: any) {
+        // default: do nothing
     }
 
     // 5) 목록
