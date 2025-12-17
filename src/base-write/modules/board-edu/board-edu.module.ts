@@ -8,6 +8,7 @@ import {G5Board} from "../../../board/entities/g5-board.entity";
 import {BoardEduService} from "./board-edu.service";
 import {CommonModule} from "../../../common/common.module";
 import {BoardEduController} from "./board-edu.controller";
+import {PushModule} from "../../../push/push.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import {BoardEduController} from "./board-edu.controller";
             User,
             G5Board,
         ]),
+        PushModule,
         CommonModule,   // CommonService 제공
     ],
     controllers: [BoardEduController],
@@ -25,4 +27,5 @@ import {BoardEduController} from "./board-edu.controller";
     ],
     exports: [BoardEduService],
 })
-export class BoardEduModule {}
+export class BoardEduModule {
+}

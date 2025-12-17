@@ -222,6 +222,8 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             wr3: dto.wr3 ?? '',
             wr4: dto.wr4 ?? '',
             wr5: dto.wr5 ?? '',
+            wr6: dto.wr6 ?? '',
+            wr7: dto.wr7 ?? '',
         } as any);
 
         const saved = await repo.save(entity as any);

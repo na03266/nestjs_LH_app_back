@@ -20,6 +20,8 @@ export class CreateWriteDto {
     @IsOptional() @IsString() wr3?: string;
     @IsOptional() @IsString() wr4?: string;
     @IsOptional() @IsString() wr5?: string;
+    @IsOptional() @IsString() wr6?: string;
+    @IsOptional() @IsString() wr7?: string;
     @IsOptional()
     @IsArray()
     @ValidateNested({ each: true })

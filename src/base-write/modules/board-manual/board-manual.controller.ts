@@ -27,16 +27,16 @@ export class BoardManualController extends AbstractWriteController<BoardManualSe
     protected override async afterCreateComment(comment: any, ctx: any) {
         await this.pushService.sendToUser(
             ctx.mbNo,
-            String(ctx.dto.caName ?? ''),
-            String(ctx.dto.wrSubject ?? ''),
+            '댓글 알림',
+            String(ctx.dto.wrContent ?? ''),
             {wrId: String(ctx.parentId)}, // data는 문자열로
         );
     }
     protected override async afterCreateReplyToComment(comment: any, ctx: any) {
         await this.pushService.sendToUser(
             ctx.mbNo,
-            String(ctx.dto.caName ?? ''),
-            String(ctx.dto.wrSubject ?? ''),
+            '대댓글 알림',
+            String(ctx.dto.wrContent ?? ''),
             {wrId: String(ctx.parentId)}, // data는 문자열로
         );
     }
