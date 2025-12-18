@@ -46,51 +46,58 @@ export class SurveyService {
      */
     async findAll(mbNo: number, dto: GetPostsDto) {
         const me = await this.findMe(mbNo);
+        const {title, caName, mineOnly} = dto; // dto에 onlyMine 추가 가정
 
-        const {title} = dto;
         const qb = this.surveyRepository.createQueryBuilder('po');
 
+        qb.andWhere('po.poIsSurvey = 1');
+
         if (title) qb.andWhere('po.poSubject LIKE :sub', {sub: `%${title}%`});
-        qb.andWhere('po.poIsSurvey = 1')
+
+        // ✅ 진행/마감
+        if (caName === '진행') {
+            qb.andWhere('(po.poDateEnd IS NULL OR po.poDateEnd >= CURDATE())');
+        } else if (caName === '마감') {
+            qb.andWhere('(po.poDateEnd IS NOT NULL AND po.poDateEnd < CURDATE())');
+        }
+
+        // ✅ 내가 참여한 설문만
+        if (mineOnly === 1) {
+            qb.andWhere(
+                `EXISTS (
+        SELECT 1
+        FROM g5_survey_responses r
+        WHERE r.po_id = po.po_id
+          AND r.mb_id = :mbId
+      )`,
+                {mbId: me.mbId},
+            );
+        }
 
         this.commonService.applyPagePaginationParamToQbForSurvey(qb, dto);
 
         const [rows, count] = await qb.getManyAndCount();
 
+        // 여기서부터는 "exists"를 매번 돌릴 필요가 없음
+        // onlyMine이면 전부 true니까 바로 true로 내려도 됨.
         const data = await Promise.all(
             rows.map(async (e) => {
-                const exists = await this.responseRepository.exists({
-                    where: {
-                        mbId: me.mbId,
-                        poId: e.poId,
-                    },
-                });
-                const count = await this.responseRepository.count({
-                    where: {
-                        poId: e.poId,
-                    },
-                });
+                const poCount = await this.responseRepository.count({where: {poId: e.poId}});
 
                 return {
-                    isSurvey: exists,             // true/false
+                    isSurvey: mineOnly ? true : await this.responseRepository.exists({
+                        where: {mbId: me.mbId, poId: e.poId},
+                    }),
                     poDate: e.poDate,
                     poDateEnd: e.poDateEnd,
                     poSubject: e.poSubject,
-                    poCount: count,
+                    poCount,
                     poId: e.poId,
                 };
             }),
         );
 
-        return {
-            data,
-            meta: {
-                count,
-                page: dto.page ?? 1,
-                take: dto.take ?? 10,
-            }
-        }
-
+        return {data, meta: {count, page: dto.page ?? 1, take: dto.take ?? 10}};
     }
 
     /**
@@ -122,7 +129,7 @@ export class SurveyService {
         return {
             ...survey,
             isSurvey: exists,
-            poCount:count,
+            poCount: count,
         };
     }
 
