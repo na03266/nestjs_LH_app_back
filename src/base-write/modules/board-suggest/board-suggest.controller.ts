@@ -1,7 +1,8 @@
-import {Controller} from '@nestjs/common';
+import {Controller, Patch, Query} from '@nestjs/common';
 import {BoardSuggestService} from './board-suggest.service';
 import {AbstractWriteController} from "../../abstract-write.controller";
 import {PushService} from "../../../push/push.service";
+import {UserId} from "../../../user/decorator/user-id.decorator";
 
 @Controller('board-suggest')
 export class BoardSuggestController extends AbstractWriteController<BoardSuggestService> {
@@ -12,6 +13,22 @@ export class BoardSuggestController extends AbstractWriteController<BoardSuggest
         super(service);
     }
 
+
+    @Patch('pass')
+    async passOnPost(
+        @Query('wrId') wrId: number,
+        @UserId() mbNo: number,
+    ) {
+        const post = await this.service.passOnPost(mbNo, wrId);
+        const upperDept = await this.service.findTeamOfMember(mbNo);
+
+        await this.pushService.sendToTopic(
+            upperDept.toString(),
+            String(post?.caName ?? ''),
+            String(post?.wrSubject ?? ''),
+            {wrId: String(post ?? '')}, // data는 문자열로
+        );
+    }
 
     protected override async afterCreatePost(post: any, ctx: any) {
         const upperDept = await this.service.findTeamOfMember(ctx.dto.mbNo);

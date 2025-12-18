@@ -11,6 +11,7 @@ import {FileService} from "../../../common/file/file.service";
 import {CommonService} from "../../../common/common.service";
 import {ConfigService} from "@nestjs/config";
 import {GetPostsDto} from "../../dto/get-posts.dto";
+import {when} from "joi";
 
 
 @Injectable()
@@ -49,7 +50,8 @@ export class BoardSuggestService extends AbstractWriteService<BoardSuggest> {
         qb.andWhere(
             new Brackets((q) => {
                 q.where('post.mbId LIKE :mbId', {mbId: `%${me.mbId}%`})
-                    .orWhere('post.wr6 LIKE :deptId', {deptId: `%${me.deptSite?.id}%`});
+                    .orWhere('post.wr6 LIKE :deptId', {deptId: `%${me.deptSite?.id}%`})
+                    .orWhere('post.wrOption Not LIKE :secret', {secret: '%secret%'})
             }),
         );
 
@@ -99,12 +101,33 @@ export class BoardSuggestService extends AbstractWriteService<BoardSuggest> {
             },
             relations: ['members', 'members.deptSite'],
         });
-        return me?.deptSite?.parent?.id ?? 0;
+        return me?.deptSite?.parent?.id ?? 1;
     }
 
     async addUpperTeam(wrId: number, upperDept: number) {
         await this.boardRepo.update(wrId, {wr6: upperDept.toString()});
     }
 
+    async passOnPost(mbNo: number, wrId: number) {
+        const post = await this.boardRepo.findOne({where: {wrId}})
+        const upperTeam = await this.findTeamOfMember(mbNo);
+        const teamNo = String(upperTeam).trim();
+        if (!teamNo) return;
+
+        // 1) 기존 wr6을 CSV로 파싱
+        const existing = (post?.wr6 ?? '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+        // 2) 중복 제거 + 신규 팀 추가
+        const set = new Set(existing);
+        set.add(teamNo);
+
+        // 3) 다시 CSV로 저장
+        const newWr6 = Array.from(set).join(',');
+        await this.boardRepo.update(wrId, {wr6: newWr6});
+        return post;
+    }
 
 }
