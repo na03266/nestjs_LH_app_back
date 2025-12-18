@@ -8,6 +8,7 @@ import {G5Board} from "../../../board/entities/g5-board.entity";
 import {BoardRiskService} from "./board-risk.service";
 import {CommonModule} from "../../../common/common.module";
 import {BoardRiskController} from "./board-risk.controller";
+import {PushModule} from "../../../push/push.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import {BoardRiskController} from "./board-risk.controller";
             User,
             G5Board,
         ]),
+        PushModule,
         CommonModule,   // CommonService 제공
     ],
     controllers: [BoardRiskController],

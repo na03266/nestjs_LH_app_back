@@ -43,6 +43,7 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
         const qb = this.boardRepo
             .createQueryBuilder('post')
             .where('1=1');
+        qb.andWhere('post.wrOption Not LIKE :secret', {secret: '%secret%'});
 
         // 1) 기본 검색 조건 (부모 로직과 동일)
         if (title) {
@@ -81,5 +82,19 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
                 take: dto.take ?? 10,
             },
         };
+    }
+
+    async findTeamOfMember(mbNo: number) {
+        const me = await this.userRepo.findOne({
+            where: {
+                mbNo
+            },
+            relations: ['members', 'members.deptSite'],
+        });
+        return me?.deptSite?.parent?.id ?? 1;
+    }
+
+    async addUpperTeam(wrId: number, upperDept: number) {
+        await this.boardRepo.update(wrId, {wr6: '28,' + upperDept.toString()});
     }
 }
