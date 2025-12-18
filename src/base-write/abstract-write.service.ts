@@ -29,7 +29,6 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         protected readonly fileService: FileService,
         protected readonly commonService: CommonService,
         private readonly configService: ConfigService,
-
     ) {
     }
 
@@ -127,13 +126,16 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         return post;
     }
 
-    async findAll(dto: GetPostsDto, mbNo:number) {
-        const {title, caName, wr1} = dto;
+    async findAll(dto: GetPostsDto, mbNo: number) {
+        const {title, caName, wr1, mineOnly} = dto;
         const qb = this.boardRepo.createQueryBuilder('post').where('1=1');
 
         if (title) qb.andWhere('post.wrSubject LIKE :sub', {sub: `%${title}%`});
         if (caName) qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
         if (wr1) qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
+
+        const me = await this.findMember(mbNo);
+        if (mineOnly) qb.andWhere('post.mbId LIKE :sub', {sub: `%${me.mbId}%`});
 
         this.commonService.applyPagePaginationParamToQb(qb, dto);
 
@@ -442,7 +444,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         const post = await this.findPost(wrId);
 
         const boardMeta = await this.g5BoardRepo.findOne({
-            where: { boTable: this.boTable },
+            where: {boTable: this.boTable},
         });
 
         // 1. 기본 권한 체크 (기존 로직 그대로 활용)
