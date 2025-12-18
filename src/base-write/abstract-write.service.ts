@@ -127,7 +127,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         return post;
     }
 
-    async findAll(dto: GetPostsDto) {
+    async findAll(dto: GetPostsDto, mbNo:number) {
         const {title, caName, wr1} = dto;
         const qb = this.boardRepo.createQueryBuilder('post').where('1=1');
 

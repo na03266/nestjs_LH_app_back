@@ -1,7 +1,7 @@
 // board-edu.service.ts
 import {Injectable} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
-import {Repository} from 'typeorm';
+import {Brackets, In, Repository} from 'typeorm';
 import {BoardSuggest} from "./entity/board-suggest.entity";
 import {BoardFile} from "../../../file/entities/board_file.entity";
 import {User} from "../../../user/entities/user.entity";
@@ -37,12 +37,21 @@ export class BoardSuggestService extends AbstractWriteService<BoardSuggest> {
     // 필요하면 여기서 개별 게시판만의 커스텀 메서드/오버라이드 추가
     // 예: findAll에 기본 caName 필터 강제 등
     // 부모의 findAll을 재정의 (override 키워드 사용)
-    override async findAll(dto: GetPostsDto) {
-        const {title, caName, wr1} = dto;
+    override async findAll(dto: GetPostsDto, mbNo: number) {
+        const {title, caName, wr1,} = dto;
+
+        const me = await this.findMember(mbNo);
 
         const qb = this.boardRepo
             .createQueryBuilder('post')
             .where('1=1');
+
+        qb.andWhere(
+            new Brackets((q) => {
+                q.where('post.mbId LIKE :mbId', {mbId: `%${me.mbId}%`})
+                    .orWhere('post.wr6 LIKE :deptId', {deptId: `%${me.deptSite?.id}%`});
+            }),
+        );
 
         // 1) 기본 검색 조건 (부모 로직과 동일)
         if (title) {
@@ -82,4 +91,20 @@ export class BoardSuggestService extends AbstractWriteService<BoardSuggest> {
             },
         };
     }
+
+    async findTeamOfMember(mbNo: number) {
+        const me = await this.userRepo.findOne({
+            where: {
+                mbNo
+            },
+            relations: ['members', 'members.deptSite'],
+        });
+        return me?.deptSite?.parent?.id ?? 0;
+    }
+
+    async addUpperTeam(wrId: number, upperDept: number) {
+        await this.boardRepo.update(wrId, {wr6: upperDept.toString()});
+    }
+
+
 }

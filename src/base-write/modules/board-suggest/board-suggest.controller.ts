@@ -1,10 +1,46 @@
-import { Controller } from '@nestjs/common';
-import { BoardSuggestService } from './board-suggest.service';
+import {Controller} from '@nestjs/common';
+import {BoardSuggestService} from './board-suggest.service';
 import {AbstractWriteController} from "../../abstract-write.controller";
+import {PushService} from "../../../push/push.service";
 
 @Controller('board-suggest')
 export class BoardSuggestController extends AbstractWriteController<BoardSuggestService> {
-    constructor(service: BoardSuggestService) {
+    constructor(
+        service: BoardSuggestService,
+        private readonly pushService: PushService,
+    ) {
         super(service);
+    }
+
+
+    protected override async afterCreatePost(post: any, ctx: any) {
+        const upperDept = await this.service.findTeamOfMember(ctx.dto.mbNo);
+        if (upperDept) {
+            await this.pushService.sendToTopic(
+                upperDept.toString(),
+                String(ctx.dto.caName ?? ''),
+                String(ctx.dto.wrSubject ?? ''),
+                {wrId: String(post)}, // data는 문자열로
+            );
+            await this.service.addUpperTeam(post, upperDept);
+        }
+    }
+
+    protected override async afterCreateComment(comment: any, ctx: any) {
+        await this.pushService.sendToUser(
+            ctx.mbNo,
+            '댓글 알림',
+            String(ctx.dto.wrContent ?? ''),
+            {wrId: String(ctx.parentId)}, // data는 문자열로
+        );
+    }
+
+    protected override async afterCreateReplyToComment(comment: any, ctx: any) {
+        await this.pushService.sendToUser(
+            ctx.mbNo,
+            '대댓글 알림',
+            String(ctx.dto.wrContent ?? ''),
+            {wrId: String(ctx.parentId)}, // data는 문자열로
+        );
     }
 }

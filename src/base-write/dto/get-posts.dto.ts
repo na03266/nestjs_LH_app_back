@@ -1,5 +1,5 @@
 import {PagePaginationDto} from "../../common/dto/page-pagination.dto";
-import {IsOptional, IsString} from "class-validator";
+import {IsBoolean, IsOptional, IsString} from "class-validator";
 
 export class GetPostsDto extends PagePaginationDto {
     @IsOptional()
@@ -13,4 +13,5 @@ export class GetPostsDto extends PagePaginationDto {
     @IsOptional()
     @IsString()
     caName?: string;
+
 }

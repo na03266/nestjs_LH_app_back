@@ -8,6 +8,7 @@ import {G5Board} from "../../../board/entities/g5-board.entity";
 import {BoardSuggestService} from "./board-suggest.service";
 import {CommonModule} from "../../../common/common.module";
 import {BoardSuggestController} from "./board-suggest.controller";
+import {PushModule} from "../../../push/push.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import {BoardSuggestController} from "./board-suggest.controller";
             User,
             G5Board,
         ]),
+        PushModule,
         CommonModule,   // CommonService 제공
     ],
     controllers: [BoardSuggestController],

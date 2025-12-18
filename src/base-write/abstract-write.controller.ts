@@ -116,8 +116,9 @@ export abstract class AbstractWriteController<
 
     // 5) 목록
     @Get()
-    async getPosts(@Query() dto: GetPostsDto) {
-        return this.service.findAll(dto);
+    async getPosts(@Query() dto: GetPostsDto,
+                   @UserId() mbNo:number) {
+        return this.service.findAll(dto, mbNo);
     }
 
     // 6) 상세
