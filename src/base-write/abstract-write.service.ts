@@ -130,12 +130,11 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         const {title, caName, wr1, mineOnly} = dto;
         const qb = this.boardRepo.createQueryBuilder('post').where('1=1');
 
+
         if (title) qb.andWhere('post.wrSubject LIKE :sub', {sub: `%${title}%`});
         if (caName) qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
         if (wr1) qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
 
-        const me = await this.findMember(mbNo);
-        if (mineOnly) qb.andWhere('post.mbId LIKE :sub', {sub: `%${me.mbId}%`});
 
         this.commonService.applyPagePaginationParamToQb(qb, dto);
 

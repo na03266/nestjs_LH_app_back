@@ -37,12 +37,16 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
     // 필요하면 여기서 개별 게시판만의 커스텀 메서드/오버라이드 추가
     // 예: findAll에 기본 caName 필터 강제 등
     // 부모의 findAll을 재정의 (override 키워드 사용)
-    override async findAll(dto: GetPostsDto) {
-        const {title, caName, wr1} = dto;
+    override async findAll(dto: GetPostsDto, mbNo: number) {
+        const {title, caName, wr1, mineOnly} = dto;
+        const me = await this.findMember(mbNo);
 
         const qb = this.boardRepo
             .createQueryBuilder('post')
             .where('1=1');
+
+        if (mineOnly === 1) qb.andWhere('post.mbId LIKE :sub', {sub: `%${me.mbId}%`});
+
         qb.andWhere('post.wrOption Not LIKE :secret', {secret: '%secret%'});
 
         // 1) 기본 검색 조건 (부모 로직과 동일)
