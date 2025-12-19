@@ -148,69 +148,67 @@ export class ChatRoomService {
 
     async findMyRooms(mbNo: number, dto: GetChatRoomsDto) {
         const user = await this.findUser(mbNo);
-        const {name} = dto;
+        const { name } = dto;
+
         const qb = this.cursorRepository
             .createQueryBuilder('cursor')
             .leftJoinAndSelect('cursor.room', 'room')
-            .where('cursor.deletedAt is NULL')
-
+            .where('cursor.deletedAt IS NULL')
+            .andWhere('cursor.mbNo = :mbNo', { mbNo: user.mbNo });
 
         if (name) {
-            qb.andWhere('cursor.roomNickName LIKE :name', {name: `%${name}%`});
+            qb.andWhere('cursor.roomNickName LIKE :name', { name: `%${name}%` });
         }
 
-        qb.andWhere('cursor.mbNo = :mbNo', {mbNo: user.mbNo});
-
-        const {nextCursor} = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
+        const { nextCursor } = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
         const [cursors, count] = await qb.getManyAndCount();
 
         if (cursors.length === 0) {
-            return {
-                data: [],
-                meta: {nextCursor, count},
-            };
+            return { data: [], meta: { nextCursor, count } };
         }
 
-        // 1) 방 전체 로드 (멤버 + 메시지까지)
+        // 1) 방 로드
         const roomIds = cursors.map((c) => c.roomId);
         const rooms = await this.chatRoomRepository.find({
-            where: {id: In(roomIds)},
-            relations: ['members', 'messages'], // ★ messages 반드시 포함
+            where: { id: In(roomIds) },
+            relations: ['members', 'messages'],
         });
-
         const roomsById = new Map(rooms.map((r) => [r.id, r]));
 
+        // 2) memberCount: 방별 활성 커서 수를 한 번에 집계
+        const memberCounts = await this.cursorRepository
+            .createQueryBuilder('c')
+            .select('c.roomId', 'roomId')
+            .addSelect('COUNT(*)', 'cnt')
+            .where('c.roomId IN (:...roomIds)', { roomIds })
+            .andWhere('c.deletedAt IS NULL')
+            .groupBy('c.roomId')
+            .getRawMany();
 
-        // 2) 커서 기준으로 unread 계산 + 요약 DTO 생성
-        const fixedData = cursors.map(async (cursor) => {
+        const memberCountByRoomId = new Map<number, number>(
+            memberCounts.map((r) => [Number(r.roomId), Number(r.cnt)]),
+        );
+
+        // 3) cursor별 데이터 생성 (동기 map으로 충분: 이제 await가 없음)
+        const fixedData = cursors.map((cursor) => {
             const room = roomsById.get(cursor.roomId);
+
             if (!room) {
                 return {
                     roomId: cursor.roomId,
                     name: cursor.roomNickName ?? '',
-                    memberCount: 0,
+                    memberCount: memberCountByRoomId.get(cursor.roomId) ?? 0,
                     newMessageCount: 0,
                 };
             }
-            const memberCounts = await this.cursorRepository
-                .createQueryBuilder('c')
-                .select('c.roomId', 'roomId')
-                .addSelect('COUNT(*)', 'cnt')
-                .where('c.roomId IN (:...roomIds)', {roomIds})
-                .andWhere('c.deletedAt IS NULL')
-                .groupBy('c.roomId')
-                .getRawMany();
 
-            const memberCountByRoomId = new Map<number, number>(
-                memberCounts.map((r) => [Number(r.roomId), Number(r.cnt)]),
-            );
             const messages = room.messages ?? [];
-            const lastReadId = cursor.lastReadId
-                ? BigInt(cursor.lastReadId)
-                : BigInt(0);
+
+            // 필드명 점검: 엔티티가 lastReadMessageId면 그걸로 바꾸세요.
+            const lastReadId = cursor.lastReadId ? BigInt(cursor.lastReadId) : BigInt(0);
+
             const unreadCount = messages.reduce((acc, m) => {
                 const mid = BigInt(m.id);
-                if (!mid) return acc; // NaN 방어
                 return acc + (mid > lastReadId ? 1 : 0);
             }, 0);
 
@@ -224,7 +222,7 @@ export class ChatRoomService {
 
         return {
             data: fixedData,
-            meta: {nextCursor, count},
+            meta: { nextCursor, count },
         };
     }
 
