@@ -93,7 +93,7 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
             where: {
                 mbNo
             },
-            relations: ['members', 'members.deptSite'],
+            relations: ['deptSite'],
         });
         return me?.deptSite?.parent?.id ?? 1;
     }

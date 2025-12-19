@@ -24,6 +24,7 @@ export class Department {
     @Column({type: 'varchar', length: 100, nullable: false})
     name!: string;
 
+
     @Index('idx_department_parent')
     @ManyToOne(() => Department, (dept) => dept.children, {
         nullable: true,

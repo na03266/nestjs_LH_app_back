@@ -56,9 +56,9 @@ export class SurveyService {
 
         // ✅ 진행/마감
         if (caName === '진행') {
-            qb.andWhere('(po.poDateEnd IS NULL OR po.poDateEnd >= CURDATE())');
+            qb.andWhere(' po.poDateEnd >= CURDATE()');
         } else if (caName === '마감') {
-            qb.andWhere('(po.poDateEnd IS NOT NULL AND po.poDateEnd < CURDATE())');
+            qb.andWhere('po.poDateEnd < CURDATE()');
         }
 
         // ✅ 내가 참여한 설문만

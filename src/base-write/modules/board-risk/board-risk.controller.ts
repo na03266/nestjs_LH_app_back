@@ -20,7 +20,7 @@ export class BoardRiskController extends AbstractWriteController<BoardRiskServic
             {wrId: String(post)}, // data는 문자열로
         );
 
-        const upperDept = await this.service.findTeamOfMember(ctx.dto.mbNo);
+        const upperDept = await this.service.findTeamOfMember(ctx.mbNo);
         if (upperDept) {
             await this.pushService.sendToTopic(
                 upperDept.toString(),
