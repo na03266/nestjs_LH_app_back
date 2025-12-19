@@ -1,14 +1,9 @@
 import {Injectable} from '@nestjs/common';
-import {CreateDepartmentDto} from './dto/create-department.dto';
-import {UpdateDepartmentDto} from './dto/update-department.dto';
 import {InjectRepository} from "@nestjs/typeorm";
 import {Department} from "./entities/department.entity";
-import {IsNull, Not, Repository} from "typeorm";
+import {Repository} from "typeorm";
 import {User} from "../user/entities/user.entity";
-import {IsEmpty} from "class-validator";
-import {GetDepartmentDto} from "./dto/get-department.dto";
 import {DepartmentDto} from "./dto/department.dto";
-import {number} from "joi";
 
 @Injectable()
 export class DepartmentService {

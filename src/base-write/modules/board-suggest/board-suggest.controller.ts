@@ -1,8 +1,9 @@
-import {Controller, Patch, Query} from '@nestjs/common';
+import {Body, Controller, Patch, Query} from '@nestjs/common';
 import {BoardSuggestService} from './board-suggest.service';
 import {AbstractWriteController} from "../../abstract-write.controller";
 import {PushService} from "../../../push/push.service";
 import {UserId} from "../../../user/decorator/user-id.decorator";
+import {PassOnDepartmentDto} from "../../../department/dto/pass-on-department.dto";
 
 @Controller('board-suggest')
 export class BoardSuggestController extends AbstractWriteController<BoardSuggestService> {
@@ -16,18 +17,27 @@ export class BoardSuggestController extends AbstractWriteController<BoardSuggest
 
     @Patch('pass')
     async passOnPost(
+        @Body() dto: PassOnDepartmentDto,
         @Query('wrId') wrId: number,
-        @UserId() mbNo: number,
     ) {
-        const post = await this.service.passOnPost(mbNo, wrId);
-        const upperDept = await this.service.findTeamOfMember(mbNo);
+        const post = await this.service.passOnPost(dto, wrId);
 
-        await this.pushService.sendToTopic(
-            upperDept.toString(),
-            String(post?.caName ?? ''),
-            String(post?.wrSubject ?? ''),
-            {wrId: String(post ?? '')}, // data는 문자열로
-        );
+        for (const team in dto.teamNos) {
+            await this.pushService.sendToTopic(
+                team.toString(),
+                String(post?.caName ?? ''),
+                String(post?.wrSubject ?? ''),
+                {wrId: String(post ?? '')}, // data는 문자열로
+            );
+        }
+        for (const mb in dto.memberNos) {
+            await this.pushService.sendToUser(
+                Number(mb),
+                String(post?.caName ?? ''),
+                String(post?.wrSubject ?? ''),
+                {wrId: String(post ?? '')}, // data는 문자열로
+            );
+        }
     }
 
     protected override async afterCreatePost(post: any, ctx: any) {

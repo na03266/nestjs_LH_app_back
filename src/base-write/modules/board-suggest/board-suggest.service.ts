@@ -12,6 +12,7 @@ import {CommonService} from "../../../common/common.service";
 import {ConfigService} from "@nestjs/config";
 import {GetPostsDto} from "../../dto/get-posts.dto";
 import {when} from "joi";
+import {PassOnDepartmentDto} from "../../../department/dto/pass-on-department.dto";
 
 
 @Injectable()
@@ -110,25 +111,13 @@ export class BoardSuggestService extends AbstractWriteService<BoardSuggest> {
         await this.boardRepo.update(wrId, {wr6: upperDept.toString()});
     }
 
-    async passOnPost(mbNo: number, wrId: number) {
+    async passOnPost(dto: PassOnDepartmentDto, wrId: number) {
         const post = await this.boardRepo.findOne({where: {wrId}})
-        const upperTeam = await this.findTeamOfMember(mbNo);
-        const teamNo = String(upperTeam).trim();
-        if (!teamNo) return;
-
-        // 1) 기존 wr6을 CSV로 파싱
-        const existing = (post?.wr6 ?? '')
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean);
-
-        // 2) 중복 제거 + 신규 팀 추가
-        const set = new Set(existing);
-        set.add(teamNo);
 
         // 3) 다시 CSV로 저장
-        const newWr6 = Array.from(set).join(',');
-        await this.boardRepo.update(wrId, {wr6: newWr6});
+        const wr6 = Array.from(dto.teamNos).join(',');
+        const wr7 = Array.from(dto.memberNos).join(',');
+        await this.boardRepo.update(wrId, {wr6: wr6, wr7: wr7});
         return post;
     }
 
