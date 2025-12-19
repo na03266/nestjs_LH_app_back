@@ -81,43 +81,54 @@ export class DepartmentService {
 
     async findOne(id: number) {
         const result = await this.departmentRepository.findOne({
-            where: {id},
+            where: { id },
             relations: {
                 members: true,
-                parent: {
-                    parent: true,           // 부모의 부모까지 로딩
-                },
-                children: {
-                    members: true,
-                    children: true,
-                },
+                parent: { parent: true },
+                children: { members: true, children: true },
             },
         });
 
-        if (!result) {
-            // 필요시 NotFoundException 등
-            return null;
-        }
+        if (!result) return null;
 
         const grandParentId = result.parent?.parent?.id ?? null;
         const parentId = result.parent?.id ?? null;
 
-        return {
-            // 먼저 엔티티 속성들을 펼치고
-            ...result,
+        // ✅ 멤버 이름순 정렬 함수 (빈 이름은 뒤로)
+        const sortMembersByName = <T extends { mbName?: string | null; mbNo?: number }>(arr?: T[]) => {
+            if (!arr) return [];
+            return [...arr].sort((a, b) => {
+                const an = (a.mbName ?? '').trim();
+                const bn = (b.mbName ?? '').trim();
 
-            // 그 위에 우리가 원하는 커스텀 필드를 덮어씀
+                if (!an && !bn) return (a.mbNo ?? 0) - (b.mbNo ?? 0);
+                if (!an) return 1;  // 빈 이름 뒤로
+                if (!bn) return -1;
+
+                const cmp = an.localeCompare(bn, 'ko', { sensitivity: 'base', numeric: true });
+                return cmp !== 0 ? cmp : (a.mbNo ?? 0) - (b.mbNo ?? 0);
+            });
+        };
+
+        // ✅ 본인 부서 members 정렬
+        const sortedMembers = sortMembersByName(result.members);
+
+        // ✅ children의 members도 정렬 (필요 시 children.children까지 재귀로 확장 가능)
+        const sortedChildren = id === 1
+            ? []
+            : (result.children ?? []).map((e) => ({
+                ...e,
+                members: sortMembersByName(e.members),
+                isMb: (e.members?.length ?? 0) !== 0,
+            }));
+
+        return {
+            ...result,
             grandParentId,
             parentId,
             isMb: (result.members?.length ?? 0) > 0,
-            children: id === 1
-                ? []
-                : (result.children.map((e) => {
-                    return {
-                        ...e,
-                        isMb: e.members.length !== 0,
-                    }
-                }) ?? []),
+            members: sortedMembers,     // ✅ 정렬된 멤버로 덮어쓰기
+            children: sortedChildren,   // ✅ 정렬된 children 반영
         };
     }
 
