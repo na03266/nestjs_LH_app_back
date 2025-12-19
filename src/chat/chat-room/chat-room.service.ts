@@ -265,14 +265,17 @@ export class ChatRoomService {
         };
 
         // 6) 상세 멤버 목록
-        const members = room.members.map((m) => ({
-            mbNo: m.mbNo,
-            name: m.mbName ?? '',
-            department: m.deptSite?.name ?? '',
-            registerNum: m.registerNum ?? '',
-            mb5: m.mb5 ?? '',
-            mb2: m.mb2 ?? '',
-        }));
+        const members = room.members
+            .map((m) => ({
+                mbNo: m.mbNo,
+                name: m.mbName ?? '',
+                department: m.deptSite?.name ?? '',
+                registerNum: m.registerNum ?? '',
+                mb5: m.mb5 ?? '',
+                mb2: m.mb2 ?? '',
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'ko', {sensitivity: 'base'}));
+
 
         return {
             ...summary,
