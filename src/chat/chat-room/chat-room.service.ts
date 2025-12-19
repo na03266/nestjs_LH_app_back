@@ -152,9 +152,11 @@ export class ChatRoomService {
         const qb = this.cursorRepository
             .createQueryBuilder('cursor')
             .leftJoinAndSelect('cursor.room', 'room')
+            .where('cursor.deletedAt is NULL')
+
 
         if (name) {
-            qb.where('cursor.roomNickName LIKE :name', {name: `%${name}%`});
+            qb.andWhere('cursor.roomNickName LIKE :name', {name: `%${name}%`});
         }
 
         qb.andWhere('cursor.mbNo = :mbNo', {mbNo: user.mbNo});
@@ -180,7 +182,7 @@ export class ChatRoomService {
 
 
         // 2) 커서 기준으로 unread 계산 + 요약 DTO 생성
-        const fixedData = cursors.map((cursor) => {
+        const fixedData = cursors.map(async (cursor) => {
             const room = roomsById.get(cursor.roomId);
             if (!room) {
                 return {
@@ -190,7 +192,18 @@ export class ChatRoomService {
                     newMessageCount: 0,
                 };
             }
+            const memberCounts = await this.cursorRepository
+                .createQueryBuilder('c')
+                .select('c.roomId', 'roomId')
+                .addSelect('COUNT(*)', 'cnt')
+                .where('c.roomId IN (:...roomIds)', {roomIds})
+                .andWhere('c.deletedAt IS NULL')
+                .groupBy('c.roomId')
+                .getRawMany();
 
+            const memberCountByRoomId = new Map<number, number>(
+                memberCounts.map((r) => [Number(r.roomId), Number(r.cnt)]),
+            );
             const messages = room.messages ?? [];
             const lastReadId = cursor.lastReadId
                 ? BigInt(cursor.lastReadId)
@@ -204,7 +217,7 @@ export class ChatRoomService {
             return {
                 roomId: room.id,
                 name: cursor.roomNickName ?? room.name ?? '',
-                memberCount: room.members?.length ?? 0,
+                memberCount: memberCountByRoomId.get(room.id) ?? 0,
                 newMessageCount: unreadCount,
             };
         });
@@ -265,18 +278,23 @@ export class ChatRoomService {
         };
 
         // 6) 상세 멤버 목록
-        const members = room.members
+        const activeMembers = await this.userRepository
+            .createQueryBuilder('u')
+            .innerJoin(ChatCursor, 'c', 'c.mbNo = u.mbNo')
+            .where('c.roomId = :roomId', {roomId})
+            .andWhere('c.deletedAt IS NULL')
+            .getMany();
+
+        const members = activeMembers
             .map((m) => ({
                 mbNo: m.mbNo,
                 name: m.mbName ?? '',
-                department: m.deptSite?.name ?? '',
+                department: (m as any).deptSite?.name ?? '', // 실제 relation 있으면 join해서 사용 권장
                 registerNum: m.registerNum ?? '',
                 mb5: m.mb5 ?? '',
                 mb2: m.mb2 ?? '',
             }))
             .sort((a, b) => a.name.localeCompare(b.name, 'ko', {sensitivity: 'base'}));
-
-
         return {
             ...summary,
             members,
@@ -286,154 +304,222 @@ export class ChatRoomService {
     async update(id: string, dto: UpdateRoomDto, mbNo: number) {
         const roomId = Number(id);
 
-        // 1) 내가 이 방 멤버인지 확인 (cursor 기준)
-        const cursor = await this.cursorRepository.findOne({
-            where: {
-                mbNo,
-                roomId,
-            },
-        });
+        return await this.dataSource.transaction(async (manager) => {
+            // repositories bound to transaction
+            const cursorRepo = manager.getRepository(ChatCursor);
+            const roomRepo = manager.getRepository(ChatRoom);
+            const userRepo = manager.getRepository(User);
+            const deptRepo = manager.getRepository(Department);
+            const msgRepo = manager.getRepository(ChatMessage);
 
-        if (!cursor) {
-            throw new NotFoundException('사용자 정보를 찾을 수 없습니다.');
-        }
+            // 1) 내가 이 방 멤버인지 확인 (cursor 기준)
+            const myCursor = await cursorRepo.findOne({
+                where: {mbNo, roomId},
+            });
+            if (!myCursor) {
+                throw new NotFoundException('사용자 정보를 찾을 수 없습니다.');
+            }
 
-        // 2) 방 + 기존 멤버 로드
-        const room = await this.chatRoomRepository.findOne({
-            where: {id: roomId},
-            relations: ['members'],
-        });
+            // 2) 방 + 기존 멤버 로드
+            const room = await roomRepo.findOne({
+                where: {id: roomId},
+                relations: ['members'],
+            });
+            if (!room) {
+                throw new NotFoundException('채팅방을 찾을 수 없습니다.');
+            }
 
-        if (!room) {
-            throw new NotFoundException('채팅방을 찾을 수 없습니다.');
-        }
+            // 공통: 시스템 메시지 기록 함수
+            const pushSystem = async (content: string) => {
+                await msgRepo
+                    .createQueryBuilder()
+                    .insert()
+                    .into(ChatMessage)
+                    .values({
+                        room: {id: roomId},
+                        type: MessageType.SYSTEM,
+                        content,
+                    })
+                    .execute();
+            };
 
-        // ─────────────────────────
-        // A. 방 이름 수정: 방 이름은 그대로 두고,
-        //    "내 커서 별칭(roomNickName)"만 변경
-        // ─────────────────────────
-        if (dto.name) {
-            cursor.roomNickName = dto.name;
-            await this.cursorRepository.save(cursor);
+            // A) 방 이름 수정: 방 이름은 그대로 두고, 내 커서 별칭만 변경
+            if (dto.name) {
+                myCursor.roomNickName = dto.name;
+                await cursorRepo.save(myCursor);
 
-            // 만약 실제 ChatRoom.name도 같이 바꾸고 싶으면 아래 주석 해제
-            // room.name = dto.name;
-            // await this.chatRoomRepository.save(room);
-        }
+                // 방 자체 이름도 바꾸려면 아래 주석 해제
+                // room.name = dto.name;
+                // await roomRepo.save(room);
+            }
 
-        // ─────────────────────────
-        // B. 멤버 추가 (팀 + 개별), 중복 제거
-        // ─────────────────────────
-        const hasMemberNos = (dto.memberNos?.length ?? 0) > 0;
-        const hasTeamNos = (dto.teamNos?.length ?? 0) > 0;
+            // B) 멤버 추가(팀 + 개별) 및 "재입장" 감지/복구
+            const hasMemberNos = (dto.memberNos?.length ?? 0) > 0;
+            const hasTeamNos = (dto.teamNos?.length ?? 0) > 0;
 
-        if (hasMemberNos || hasTeamNos) {
-            // 1) 팀 멤버 조회
-            const teams = await this.departmentRepository.find({
-                where: {
-                    id: In(dto.teamNos ?? []),
-                },
+            if (hasMemberNos || hasTeamNos) {
+                // 1) 팀 멤버 조회
+                const teams = await deptRepo.find({
+                    where: {id: In(dto.teamNos ?? [])},
+                    relations: ['members'],
+                });
+                const teamMembers: User[] = teams.flatMap((t) => t.members ?? []);
+
+                // 2) 개별 멤버 조회
+                const explicitMembers = await userRepo.find({
+                    where: {mbNo: In(dto.memberNos ?? [])},
+                });
+
+                if (explicitMembers.length !== (dto.memberNos?.length ?? 0)) {
+                    const foundSet = new Set(explicitMembers.map((u) => u.mbNo));
+                    const missing = (dto.memberNos ?? []).filter((n) => !foundSet.has(n));
+                    throw new NotFoundException(`존재하지 않는 사용자가 있습니다: ${missing.join(', ')}`);
+                }
+
+                // 3) 중복 제거(팀 + 개별)
+                const memberMap = new Map<number, User>();
+                const addMember = (m?: User) => {
+                    if (!m?.mbNo) return;
+                    memberMap.set(m.mbNo, m);
+                };
+                teamMembers.forEach(addMember);
+                explicitMembers.forEach(addMember);
+
+                const candidates = Array.from(memberMap.values());
+
+                // 4) 이미 방에 "현재" 들어와 있는 멤버는 제외(초대/복구 대상만 남김)
+                const existingNos = new Set((room.members ?? []).map((m) => m.mbNo));
+                const targetUsers = candidates.filter((u) => !existingNos.has(u.mbNo));
+                const targetNos = targetUsers.map((u) => u.mbNo);
+
+                if (targetNos.length > 0) {
+                    // 5) 기존 커서 조회(soft-deleted 포함) → 재입장/신규 구분
+                    const existingCursors = await cursorRepo.find({
+                        where: {roomId, mbNo: In(targetNos)},
+                        withDeleted: true, // soft-deleted 포함
+                    });
+
+                    const cursorMap = new Map<number, ChatCursor>();
+                    for (const c of existingCursors) cursorMap.set(c.mbNo, c);
+
+                    // restore 대상: 커서가 존재 + deletedAt(soft delete) 상태
+                    // 신규 대상: 커서가 아예 없음
+                    const toRestoreNos: number[] = [];
+                    const toInsertNos: number[] = [];
+
+                    for (const mb of targetNos) {
+                        const c = cursorMap.get(mb);
+                        if (!c) {
+                            toInsertNos.push(mb);
+                            continue;
+                        }
+                        // DeleteDateColumn은 보통 c.deletedAt으로 접근 가능
+                        // 타입 상 속성이 없으면 (c as any).deletedAt 로 확인
+                        const deletedAt = (c as any).deletedAt;
+                        if (deletedAt) toRestoreNos.push(mb);
+                        // deletedAt이 없으면 사실상 이미 활성(논리상 여기로 오면 안 됨)
+                    }
+
+                    // 6) ChatRoom.members 관계 추가(초대/재입장 공통)
+                    // 이미 관계에 남아있는(과거 데이터) 케이스까지 방어하려면,
+                    // 실제로는 중복 add가 문제될 수 있어 "추가 대상"만 add
+                    await roomRepo
+                        .createQueryBuilder()
+                        .relation(ChatRoom, 'members')
+                        .of(roomId)
+                        .add(targetNos);
+
+                    // 닉네임 베이스
+                    const nicknameBase = dto.name ?? myCursor.roomNickName ?? room.name ?? '';
+
+                    // 7) 재입장 복구 처리 + 시스템 메시지("재입장")
+                    if (toRestoreNos.length > 0) {
+                        await cursorRepo.restore({roomId, mbNo: In(toRestoreNos)});
+
+                        await cursorRepo.update(
+                            {roomId, mbNo: In(toRestoreNos)},
+                            {
+                                roomNickName: nicknameBase,
+                                lastReadId: '',
+                            },
+                        );
+
+                        // 재입장 메시지: 복구된 사용자들 이름 묶어서 1개 메시지로 기록
+                        const restoredUsers = targetUsers.filter((u) => toRestoreNos.includes(u.mbNo));
+                        const restoredNames = restoredUsers
+                            .map((u) => u.mbName ?? String(u.mbNo))
+                            .join(', ');
+
+                        await pushSystem(`${restoredNames}님이 재입장했습니다.`);
+                    }
+
+                    // 8) 신규 초대 처리(커서 insert)
+                    if (toInsertNos.length > 0) {
+                        await cursorRepo.insert(
+                            toInsertNos.map((m) => ({
+                                roomId,
+                                mbNo: m,
+                                roomNickName: nicknameBase,
+                                lastReadMessageId: null,
+                                lastReadAt: null,
+                            })),
+                        );
+
+                        // 정책상 "초대" 메시지가 필요 없으시면 아래 블록은 제거하세요.
+                        // const insertedUsers = targetUsers.filter((u) => toInsertNos.includes(u.mbNo));
+                        // const insertedNames = insertedUsers.map((u) => u.mbName ?? String(u.mbNo)).join(', ');
+                        // await pushSystem(`${insertedNames}님이 초대되었습니다.`);
+                    }
+                }
+            }
+
+            // C) 최종 방 정보 리턴
+            const updated = await roomRepo.findOne({
+                where: {id: roomId},
                 relations: ['members'],
             });
 
-            const teamMembers: User[] = teams.flatMap((t) => t.members ?? []);
-
-            // 2) 개별 멤버 조회
-            const explicitMembers = await this.userRepository.find({
-                where: {
-                    mbNo: In(dto.memberNos ?? []),
-                },
-            });
-
-            if (explicitMembers.length !== (dto.memberNos?.length ?? 0)) {
-                const foundSet = new Set(explicitMembers.map((u) => u.mbNo));
-                const missing = (dto.memberNos ?? []).filter(
-                    (n) => !foundSet.has(n),
-                );
-                throw new NotFoundException(
-                    `존재하지 않는 사용자가 있습니다: ${missing.join(', ')}`,
-                );
-            }
-
-            // 3) 팀 멤버 + 개별 멤버 + (원하면 방 생성자/요청자 mbNo도) 합치고,
-            //    mbNo 기준으로 중복 제거
-            const memberMap = new Map<number, User>();
-
-            const addMember = (m?: User) => {
-                if (!m) return;
-                if (!m.mbNo) return;
-                memberMap.set(m.mbNo, m); // 같은 mbNo 들어오면 덮어쓰기 → 자동 dedupe
-            };
-
-            teamMembers.forEach(addMember);
-            explicitMembers.forEach(addMember);
-
-            // 4) 이미 방에 있는 멤버는 제외
-            const existingNos = new Set(room.members.map((m) => m.mbNo));
-            const newUsers = Array.from(memberMap.values()).filter(
-                (u) => !existingNos.has(u.mbNo),
-            );
-
-            if (newUsers.length > 0) {
-                // 5) ChatRoom.members 관계 추가
-                await this.chatRoomRepository
-                    .createQueryBuilder()
-                    .relation(ChatRoom, 'members')
-                    .of(roomId)
-                    .add(newUsers.map((u) => u.mbNo));
-
-                // 6) ChatCursor 에도 추가
-                const nicknameBase =
-                    dto.name ?? cursor.roomNickName ?? room.name ?? '';
-
-                await this.cursorRepository
-                    .createQueryBuilder()
-                    .insert()
-                    .values(
-                        newUsers.map((u) => ({
-                            roomId,
-                            mbNo: u.mbNo,
-                            roomNickName: nicknameBase,
-                            lastReadMessageId: null,
-                            lastReadAt: null,
-                        })),
-                    )
-                    .execute();
-            }
-        }
-
-        // ─────────────────────────
-        // C. 최종 방 정보 리턴 (멤버 포함)
-        // ─────────────────────────
-        const updated = await this.chatRoomRepository.findOne({
-            where: {id: roomId},
-            relations: ['members'],
+            return updated;
         });
-
-        return updated;
     }
 
     async remove(id: number, mbNo: number) {
         const user = await this.findUser(mbNo);
 
-        // RoomCursor 조회
-        const cursor = await this.cursorRepository.findOne({
-            where: {
-                roomId: id,
-                mbNo: user.mbNo,
-            },
+        return await this.dataSource.transaction(async (manager) => {
+            const cursorRepo = manager.getRepository(ChatCursor);
+            const roomRepo = manager.getRepository(ChatRoom);
+            const msgRepo = manager.getRepository(ChatMessage);
+
+            const cursor = await cursorRepo.findOne({
+                where: {roomId: id, mbNo: user.mbNo},
+            });
+            if (!cursor) throw new NotFoundException('방을 찾을 수 없습니다.');
+
+            // 1) 커서 soft delete
+            await cursorRepo.softDelete({roomId: cursor.roomId, mbNo: cursor.mbNo});
+
+            // 2) 관계에서도 제거(멤버 수/목록 즉시 반영)
+            await roomRepo
+                .createQueryBuilder()
+                .relation(ChatRoom, 'members')
+                .of(id)
+                .remove(user.mbNo);
+
+            // 3) 나가기 시스템 메시지
+            const displayName = user.mbName ?? String(user.mbNo);
+            await msgRepo
+                .createQueryBuilder()
+                .insert()
+                .into(ChatMessage)
+                .values({
+                    room: {id},
+                    type: MessageType.SYSTEM,
+                    content: `${displayName}님이 나갔습니다.`,
+                })
+                .execute();
+
+            return id;
         });
-
-        if (!cursor) {
-            throw new NotFoundException('방을 찾을 수 없습니다.');
-        }
-
-        // ✅ relation(room)이 아니라, PK(id) 기준으로 soft delete
-        await this.cursorRepository.softDelete({
-            roomId: cursor.roomId,
-            mbNo: cursor.mbNo,
-        });
-
-        return id;
     }
 }
