@@ -149,24 +149,33 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             },
         };
     }
+    private sanitizeHtmlForFlutter(html: string): string {
+        if (!html) return html;
 
+        return html
+            // flutter_html 크래시 유발: font-feature-settings / font-variation-settings 제거
+            .replace(/(font-feature-settings|font-variation-settings)\s*:\s*[^;"']+;?/gim, '')
+            // style="" 내 중복 세미콜론 정리(선택)
+            .replace(/;\s*;/g, ';');
+    }
     /** host는 컨트롤러/상속 서비스에서 ConfigService로 주입해서 넘기는 구조 */
     async findOne(wrId: number) {
         const post = await this.findPost(wrId);
 
         const [files, comments] = await Promise.all([
             this.fileRepo.find({
-                where: {boTable: this.boTable, wrId} as any,
-                order: {bfNo: 'ASC'},
+                where: { boTable: this.boTable, wrId } as any,
+                order: { bfNo: 'ASC' },
             }),
             this.boardRepo.find({
-                where: {wrParent: wrId, wrIsComment: 1} as any,
-                order: {wrComment: 'DESC' as any},
+                where: { wrParent: wrId, wrIsComment: 1 } as any,
+                order: { wrComment: 'DESC' as any },
             }),
         ]);
 
-        await this.boardRepo.update(wrId, {wrHit: post.wrHit + 1} as any);
-        const host = this.configService.get<string>(envVariables.serverHost)
+        await this.boardRepo.update(wrId, { wrHit: post.wrHit + 1 } as any);
+
+        const host = this.configService.get<string>(envVariables.serverHost);
 
         const lite = files.map((f) => ({
             bfNo: f.bfNo,
@@ -175,13 +184,18 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             url: `http://${host}/data/file/${this.boTable}/${f.bfFile}`,
         }));
 
-        return {
+        // ✅ 핵심: 반환 직전 wrContent만 변환
+        const safePost = {
             ...post,
+            wrContent: this.sanitizeHtmlForFlutter(post.wrContent),
+        };
+
+        return {
+            ...safePost,
             comments,
             files: lite,
         };
     }
-
     /* -----------------------
        3. Create
     ------------------------ */
