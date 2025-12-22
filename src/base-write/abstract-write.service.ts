@@ -11,6 +11,7 @@ import {UpdateWriteDto} from './dto/update-write.dto';
 import {CommonService} from '../common/common.service';
 import {envVariables} from "../common/const/env.const";
 import {ConfigService} from "@nestjs/config";
+import {normalizeHtmlForFlutter} from "./utils/normalize-html-for-flutter";
 
 type CommentMinimal = {
     wrComment: number;
@@ -149,6 +150,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             },
         };
     }
+
     private sanitizeHtmlForFlutter(html: string): string {
         if (!html) return html;
 
@@ -158,22 +160,23 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             // style="" 내 중복 세미콜론 정리(선택)
             .replace(/;\s*;/g, ';');
     }
+
     /** host는 컨트롤러/상속 서비스에서 ConfigService로 주입해서 넘기는 구조 */
     async findOne(wrId: number) {
         const post = await this.findPost(wrId);
 
         const [files, comments] = await Promise.all([
             this.fileRepo.find({
-                where: { boTable: this.boTable, wrId } as any,
-                order: { bfNo: 'ASC' },
+                where: {boTable: this.boTable, wrId} as any,
+                order: {bfNo: 'ASC'},
             }),
             this.boardRepo.find({
-                where: { wrParent: wrId, wrIsComment: 1 } as any,
-                order: { wrComment: 'DESC' as any },
+                where: {wrParent: wrId, wrIsComment: 1} as any,
+                order: {wrComment: 'DESC' as any},
             }),
         ]);
 
-        await this.boardRepo.update(wrId, { wrHit: post.wrHit + 1 } as any);
+        await this.boardRepo.update(wrId, {wrHit: post.wrHit + 1} as any);
 
         const host = this.configService.get<string>(envVariables.serverHost);
 
@@ -187,7 +190,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
         // ✅ 핵심: 반환 직전 wrContent만 변환
         const safePost = {
             ...post,
-            wrContent: this.sanitizeHtmlForFlutter(post.wrContent),
+            wrContent: normalizeHtmlForFlutter(post.wrContent, host),
         };
 
         return {
@@ -196,6 +199,7 @@ export abstract class AbstractWriteService<T extends BaseBoard> {
             files: lite,
         };
     }
+
     /* -----------------------
        3. Create
     ------------------------ */
