@@ -1,7 +1,7 @@
 import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {UpdateRoomDto} from './dto/update-room.dto';
 import {InjectRepository} from "@nestjs/typeorm";
-import {DataSource, In, QueryRunner, Repository} from "typeorm";
+import {DataSource, In, IsNull, QueryRunner, Repository} from "typeorm";
 import {User} from "../../user/entities/user.entity";
 import {CreateChatRoomDto} from "./dto/create-chat-room.dto";
 import {ChatRoom} from "./entities/chat-room.entity";
@@ -148,29 +148,29 @@ export class ChatRoomService {
 
     async findMyRooms(mbNo: number, dto: GetChatRoomsDto) {
         const user = await this.findUser(mbNo);
-        const { name } = dto;
+        const {name} = dto;
 
         const qb = this.cursorRepository
             .createQueryBuilder('cursor')
             .leftJoinAndSelect('cursor.room', 'room')
             .where('cursor.deletedAt IS NULL')
-            .andWhere('cursor.mbNo = :mbNo', { mbNo: user.mbNo });
+            .andWhere('cursor.mbNo = :mbNo', {mbNo: user.mbNo});
 
         if (name) {
-            qb.andWhere('cursor.roomNickName LIKE :name', { name: `%${name}%` });
+            qb.andWhere('cursor.roomNickName LIKE :name', {name: `%${name}%`});
         }
 
-        const { nextCursor } = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
+        const {nextCursor} = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
         const [cursors, count] = await qb.getManyAndCount();
 
         if (cursors.length === 0) {
-            return { data: [], meta: { nextCursor, count } };
+            return {data: [], meta: {nextCursor, count}};
         }
 
         // 1) 방 로드
         const roomIds = cursors.map((c) => c.roomId);
         const rooms = await this.chatRoomRepository.find({
-            where: { id: In(roomIds) },
+            where: {id: In(roomIds)},
             relations: ['members', 'messages'],
         });
         const roomsById = new Map(rooms.map((r) => [r.id, r]));
@@ -180,7 +180,7 @@ export class ChatRoomService {
             .createQueryBuilder('c')
             .select('c.roomId', 'roomId')
             .addSelect('COUNT(*)', 'cnt')
-            .where('c.roomId IN (:...roomIds)', { roomIds })
+            .where('c.roomId IN (:...roomIds)', {roomIds})
             .andWhere('c.deletedAt IS NULL')
             .groupBy('c.roomId')
             .getRawMany();
@@ -222,7 +222,7 @@ export class ChatRoomService {
 
         return {
             data: fixedData,
-            meta: { nextCursor, count },
+            meta: {nextCursor, count},
         };
     }
 
@@ -235,6 +235,7 @@ export class ChatRoomService {
             where: {
                 mbNo: user.mbNo,
                 roomId,
+                deletedAt: IsNull(), // 핵심
             },
         });
 
@@ -245,43 +246,44 @@ export class ChatRoomService {
         // 2) 방 + 멤버만 조회 (messages는 굳이 안 끌고 옴)
         const room = await this.chatRoomRepository.findOne({
             where: {id: roomId},
-            relations: ['members', 'members.deptSite'],
         });
 
         if (!room) {
             throw new NotFoundException('채팅방을 찾을 수 없습니다.');
         }
 
-        // 3) 최신 메시지 1개만 따로 조회 (createdAt 기준이든 id 기준이든 한 가지로 통일)
-        const lastMessage = await this.messageRepository.findOne({
-            where: {room: {id: roomId}},
-            order: {id: 'DESC'},       // 또는 createdAt: 'DESC'
-            select: ['id'],              // id만 필요하면 select 최소화
-        });
-
-        // 4) 커서 업데이트만 수행 (이 메서드에서는 unreadCount는 무조건 0으로 본다)
-        if (lastMessage) {
-            await this.cursorRepository.update(
-                {roomId: cursor.roomId, mbNo: cursor.mbNo},
-                {lastReadId: lastMessage.id},
-            );
-        }
-
-        // 5) 요약 정보: 여기서는 "방에 들어온 시점"이므로 newMessageCount = 0 고정
-        const summary = {
-            roomId: room.id,
-            name: cursor.roomNickName ?? room.name ?? '',
-            memberCount: room.members?.length ?? 0,
-            newMessageCount: 0,   // 이 메서드의 정책: 상세 들어오면 모두 읽은 걸로 처리
-        };
-
-        // 6) 상세 멤버 목록
+        // 3) 활성 멤버만 조회 (커서 기준)
         const activeMembers = await this.userRepository
             .createQueryBuilder('u')
             .innerJoin(ChatCursor, 'c', 'c.mbNo = u.mbNo')
-            .where('c.roomId = :roomId', {roomId})
+            .where('c.roomId = :roomId', { roomId })
             .andWhere('c.deletedAt IS NULL')
+            // deptSite 필요하면 아래 2줄 추가
+            .leftJoinAndSelect('u.deptSite', 'dept')
             .getMany();
+
+        // 4) 최신 메시지 1개 조회
+        const lastMessage = await this.messageRepository.findOne({
+            where: { room: { id: roomId } },
+            order: { id: 'DESC' },
+            select: ['id'],
+        });
+
+        // 5) 읽음 처리
+        if (lastMessage) {
+            await this.cursorRepository.update(
+                { roomId: cursor.roomId, mbNo: cursor.mbNo },
+                { lastReadId: lastMessage.id }, // 엔티티 필드명 맞춰주세요
+            );
+        }
+
+        // 6) 요약 (memberCount 기준 통일)
+        const summary = {
+            roomId: room.id,
+            name: cursor.roomNickName ?? room.name ?? '',
+            memberCount: activeMembers.length, // 핵심: 커서 기준
+            newMessageCount: 0,
+        };
 
         const members = activeMembers
             .map((m) => ({
