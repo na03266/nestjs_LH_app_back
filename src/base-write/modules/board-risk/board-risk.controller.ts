@@ -1,14 +1,14 @@
-import {Controller} from '@nestjs/common';
-import {BoardRiskService} from './board-risk.service';
-import {AbstractWriteController} from "../../abstract-write.controller";
-import {PushService} from "../../../push/push.service";
+import { Controller } from '@nestjs/common';
+import { BoardRiskService } from './board-risk.service';
+import { AbstractWriteController } from "../../abstract-write.controller";
+import { PushService } from "../../../push/push.service";
 
 @Controller('board-risk')
 export class BoardRiskController extends AbstractWriteController<BoardRiskService> {
     constructor(
         service: BoardRiskService,
         private readonly pushService: PushService,
-        ) {
+    ) {
         super(service);
     }
 
@@ -17,18 +17,18 @@ export class BoardRiskController extends AbstractWriteController<BoardRiskServic
             '28',
             String(ctx.dto.caName ?? ''),
             String(ctx.dto.wrSubject ?? ''),
-            {wrId: String(post)}, // data는 문자열로
+            { wrId: String(post) }, // data는 문자열로
         );
 
-        const upperDept = await this.service.findTeamOfMember(ctx.mbNo);
+        const upperDept = await this.service.findTeamOfMember(ctx.mbNo, ctx.queryRunner);
         if (upperDept) {
             await this.pushService.sendToTopic(
                 upperDept.toString(),
                 String(ctx.dto.caName ?? ''),
                 String(ctx.dto.wrSubject ?? ''),
-                {wrId: String(post)}, // data는 문자열로
+                { wrId: String(post) }, // data는 문자열로
             );
-            await this.service.addUpperTeam(post, upperDept);
+            await this.service.addUpperTeam(post, upperDept, ctx.queryRunner);
         }
     }
 
@@ -37,7 +37,7 @@ export class BoardRiskController extends AbstractWriteController<BoardRiskServic
             ctx.mbNo,
             '댓글 알림',
             String(ctx.dto.wrContent ?? ''),
-            {wrId: String(ctx.parentId)}, // data는 문자열로
+            { wrId: String(ctx.parentId) }, // data는 문자열로
         );
     }
 
@@ -46,7 +46,7 @@ export class BoardRiskController extends AbstractWriteController<BoardRiskServic
             ctx.mbNo,
             '대댓글 알림',
             String(ctx.dto.wrContent ?? ''),
-            {wrId: String(ctx.parentId)}, // data는 문자열로
+            { wrId: String(ctx.parentId) }, // data는 문자열로
         );
     }
 }

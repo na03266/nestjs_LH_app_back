@@ -1,16 +1,16 @@
-// board-edu.service.ts
-import {Injectable} from '@nestjs/common';
-import {InjectRepository} from '@nestjs/typeorm';
-import {Repository} from 'typeorm';
-import {BoardRisk} from "./entity/board-risk.entity";
-import {BoardFile} from "../../../file/entities/board_file.entity";
-import {User} from "../../../user/entities/user.entity";
-import {AbstractWriteService} from "../../abstract-write.service";
-import {G5Board} from "../../../board/entities/g5-board.entity";
-import {FileService} from "../../../common/file/file.service";
-import {CommonService} from "../../../common/common.service";
-import {ConfigService} from "@nestjs/config";
-import {GetPostsDto} from "../../dto/get-posts.dto";
+// board-risk.service.ts
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { QueryRunner, Repository } from 'typeorm';
+import { BoardRisk } from "./entity/board-risk.entity";
+import { BoardFile } from "../../../file/entities/board_file.entity";
+import { User } from "../../../user/entities/user.entity";
+import { AbstractWriteService } from "../../abstract-write.service";
+import { G5Board } from "../../../board/entities/g5-board.entity";
+import { FileService } from "../../../common/file/file.service";
+import { CommonService } from "../../../common/common.service";
+import { ConfigService } from "@nestjs/config";
+import { GetPostsDto } from "../../dto/get-posts.dto";
 
 
 @Injectable()
@@ -20,13 +20,13 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
 
     constructor(
         @InjectRepository(BoardRisk)
-            boardRepo: Repository<BoardRisk>,
+        boardRepo: Repository<BoardRisk>,
         @InjectRepository(BoardFile)
-            fileRepo: Repository<BoardFile>,
+        fileRepo: Repository<BoardFile>,
         @InjectRepository(User)
-            userRepo: Repository<User>,
+        userRepo: Repository<User>,
         @InjectRepository(G5Board)
-            g5BoardRepo: Repository<G5Board>,
+        g5BoardRepo: Repository<G5Board>,
         fileService: FileService,
         commonService: CommonService,
         configService: ConfigService,
@@ -38,28 +38,28 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
     // 예: findAll에 기본 caName 필터 강제 등
     // 부모의 findAll을 재정의 (override 키워드 사용)
     override async findAll(dto: GetPostsDto, mbNo: number) {
-        const {title, caName, wr1, mineOnly} = dto;
+        const { title, caName, wr1, mineOnly } = dto;
         const me = await this.findMember(mbNo);
 
         const qb = this.boardRepo
             .createQueryBuilder('post')
             .where('1=1');
 
-        if (mineOnly === 1) qb.andWhere('post.mbId LIKE :sub', {sub: `%${me.mbId}%`});
+        if (mineOnly === 1) qb.andWhere('post.mbId LIKE :sub', { sub: `%${me.mbId}%` });
 
-        qb.andWhere('post.wrOption Not LIKE :secret', {secret: '%secret%'});
+        qb.andWhere('post.wrOption Not LIKE :secret', { secret: '%secret%' });
 
         // 1) 기본 검색 조건 (부모 로직과 동일)
         if (title) {
-            qb.andWhere('post.wrSubject LIKE :sub', {sub: `%${title}%`});
+            qb.andWhere('post.wrSubject LIKE :sub', { sub: `%${title}%` });
         }
 
         if (caName) {
-            qb.andWhere('post.caName LIKE :ca', {ca: `%${caName}%`});
+            qb.andWhere('post.caName LIKE :ca', { ca: `%${caName}%` });
         }
 
         if (wr1) {
-            qb.andWhere('post.wr1 LIKE :wr', {wr: `%${wr1}%`});
+            qb.andWhere('post.wr1 LIKE :wr', { wr: `%${wr1}%` });
         }
 
 
@@ -88,8 +88,9 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
         };
     }
 
-    async findTeamOfMember(mbNo: number) {
-        const me = await this.userRepo.findOne({
+    async findTeamOfMember(mbNo: number, qr?: QueryRunner) {
+        const repo = qr ? qr.manager.getRepository(this.userRepo.target) : this.userRepo;
+        const me = await repo.findOne({
             where: {
                 mbNo
             },
@@ -98,7 +99,8 @@ export class BoardRiskService extends AbstractWriteService<BoardRisk> {
         return me?.deptSite?.parent?.id ?? 1;
     }
 
-    async addUpperTeam(wrId: number, upperDept: number) {
-        await this.boardRepo.update(wrId, {wr6: '28,' + upperDept.toString()});
+    async addUpperTeam(wrId: number, upperDept: number, qr?: QueryRunner) {
+        const repo = qr ? qr.manager.getRepository(this.boardRepo.target) : this.boardRepo;
+        await repo.update(wrId, { wr6: '28,' + upperDept.toString() });
     }
 }
