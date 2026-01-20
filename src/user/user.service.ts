@@ -1,14 +1,14 @@
-import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
-import {CreateUserDto} from './dto/create-user.dto';
-import {UpdateUserDto} from './dto/update-user.dto';
-import {InjectRepository} from "@nestjs/typeorm";
-import {User} from "./entities/user.entity";
-import {Repository} from "typeorm";
-import {PagePaginationDto} from "../common/dto/page-pagination.dto";
-import {CommonService} from "../common/common.service";
-import {Department} from "../department/entities/department.entity";
-import {ChangePasswordDto} from "./dto/change-password.dto";
-import {mysql41PasswordHash} from "../auth/hash/hash";
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { InjectRepository } from "@nestjs/typeorm";
+import { User } from "./entities/user.entity";
+import { Repository } from "typeorm";
+import { PagePaginationDto } from "../common/dto/page-pagination.dto";
+import { CommonService } from "../common/common.service";
+import { Department } from "../department/entities/department.entity";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { mysql41PasswordHash } from "../auth/hash/hash";
 
 @Injectable()
 export class UserService {
@@ -36,13 +36,14 @@ export class UserService {
      * @returns 사용자 목록
      */
     async findAll(req: any, dto: PagePaginationDto) {
-        const {searchKey, searchValue} = dto;
+        const { searchKey, searchValue } = dto;
 
         const qb = this.userRepository.createQueryBuilder('users');
 
         qb.leftJoinAndSelect('users.company', 'company')
             .leftJoinAndSelect('users.workshop', 'workshop')
-            .where('users.deletedAt IS NULL');
+            .where('users.deletedAt IS NULL')
+            .andWhere('(users.mb10 IS NULL OR users.mb10 = :emptyString)', { emptyString: '' });
 
 
         if (searchKey && searchValue) {
@@ -75,7 +76,7 @@ export class UserService {
             throw new NotFoundException('일치하는 정보가 없습니다.');
         }
 
-        return {data: users, total: total};
+        return { data: users, total: total };
     }
 
     /**
@@ -85,7 +86,7 @@ export class UserService {
      */
     async findOne(id: number) {
         const user = await this.userRepository.findOne({
-            where: {mbNo: id},
+            where: { mbNo: id },
             relations: {
                 deptSite: true,
 
@@ -100,7 +101,7 @@ export class UserService {
             where: {
                 id: user.deptSite?.id
             },
-            relations: {parent: true, }
+            relations: { parent: true, }
         });
 
         return {
@@ -132,7 +133,7 @@ export class UserService {
      */
     async updatePassword(dto: ChangePasswordDto): Promise<User> {
         const user = await this.userRepository.findOne({
-            where: {mbId: dto.mbId},
+            where: { mbId: dto.mbId },
         });
 
         if (!user) {
@@ -165,7 +166,7 @@ export class UserService {
      * @returns 삭제된 사용자 정보
      */
     async remove(mbNo: number): Promise<User> {
-        const user = await this.userRepository.findOneBy({mbNo});
+        const user = await this.userRepository.findOneBy({ mbNo });
 
         if (!user) {
             throw new NotFoundException(`ID ${mbNo}인 사용자를 찾을 수 없습니다`);

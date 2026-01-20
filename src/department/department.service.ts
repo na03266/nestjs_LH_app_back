@@ -1,9 +1,9 @@
-import {Injectable} from '@nestjs/common';
-import {InjectRepository} from "@nestjs/typeorm";
-import {Department} from "./entities/department.entity";
-import {Repository} from "typeorm";
-import {User} from "../user/entities/user.entity";
-import {DepartmentDto} from "./dto/department.dto";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from "@nestjs/typeorm";
+import { Department } from "./entities/department.entity";
+import { Repository } from "typeorm";
+import { User } from "../user/entities/user.entity";
+import { DepartmentDto } from "./dto/department.dto";
 
 @Injectable()
 export class DepartmentService {
@@ -19,17 +19,25 @@ export class DepartmentService {
     async findAll() {
         const rootId = 1;
 
-        // 1. 전체 부서 + parent + members만 조회 (children은 안 불러옴)
+        // 1. 전체 부서 + parent만 조회 (members는 별도로 필터링)
         const depts = await this.departmentRepository.find({
             relations: {
                 parent: true,
-                members: true,
             },
             order: {
                 depth: 'ASC',
                 id: 'ASC',
             },
         });
+
+        // 2. 각 부서의 재직자만 조회 (mb10이 null이거나 빈 문자열)
+        for (const dept of depts) {
+            const membersQb = this.memberRepository.createQueryBuilder('member')
+                .where('member.deptSiteId = :deptId', { deptId: dept.id })
+                .andWhere('(member.mb10 IS NULL OR member.mb10 = :emptyString)', { emptyString: '' });
+            dept.members = await membersQb.getMany();
+        }
+
         const dtoMap = new Map<number, DepartmentDto>();
         for (const d of depts) {
             dtoMap.set(d.id, {
@@ -76,18 +84,37 @@ export class DepartmentService {
             }
         }
 
-        return {data: result};
+        return { data: result };
     }
 
     async findOne(id: number) {
         const result = await this.departmentRepository.findOne({
-            where: { id },
+            where: {
+                id,
+            },
             relations: {
-                members: true,
                 parent: { parent: true },
-                children: { members: true, children: true },
+                children: { children: true },
             },
         });
+
+        // members를 별도로 조회하여 mb10이 null이거나 빈 문자열인 경우만 가져오기
+        if (result) {
+            const membersQb = this.memberRepository.createQueryBuilder('member')
+                .where('member.deptSiteId = :deptId', { deptId: id })
+                .andWhere('(member.mb10 IS NULL OR member.mb10 = :emptyString)', { emptyString: '' });
+            result.members = await membersQb.getMany();
+
+            // children의 members도 필터링
+            if (result.children) {
+                for (const child of result.children) {
+                    const childMembersQb = this.memberRepository.createQueryBuilder('member')
+                        .where('member.deptSiteId = :deptId', { deptId: child.id })
+                        .andWhere('(member.mb10 IS NULL OR member.mb10 = :emptyString)', { emptyString: '' });
+                    child.members = await childMembersQb.getMany();
+                }
+            }
+        }
 
         if (!result) return null;
 
