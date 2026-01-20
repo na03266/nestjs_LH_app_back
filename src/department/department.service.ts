@@ -33,7 +33,8 @@ export class DepartmentService {
         // 2. 각 부서의 재직자만 조회 (mb10이 null이거나 빈 문자열)
         for (const dept of depts) {
             const membersQb = this.memberRepository.createQueryBuilder('member')
-                .where('member.deptSiteId = :deptId', { deptId: dept.id })
+                .leftJoin('member.deptSite', 'deptSite')
+                .where('deptSite.id = :deptId', { deptId: dept.id })
                 .andWhere('(member.mb10 IS NULL OR member.mb10 = :emptyString)', { emptyString: '' });
             dept.members = await membersQb.getMany();
         }
@@ -101,7 +102,8 @@ export class DepartmentService {
         // members를 별도로 조회하여 mb10이 null이거나 빈 문자열인 경우만 가져오기
         if (result) {
             const membersQb = this.memberRepository.createQueryBuilder('member')
-                .where('member.deptSiteId = :deptId', { deptId: id })
+                .leftJoin('member.deptSite', 'deptSite')
+                .where('deptSite.id = :deptId', { deptId: id })
                 .andWhere('(member.mb10 IS NULL OR member.mb10 = :emptyString)', { emptyString: '' });
             result.members = await membersQb.getMany();
 
@@ -109,7 +111,8 @@ export class DepartmentService {
             if (result.children) {
                 for (const child of result.children) {
                     const childMembersQb = this.memberRepository.createQueryBuilder('member')
-                        .where('member.deptSiteId = :deptId', { deptId: child.id })
+                        .leftJoin('member.deptSite', 'deptSite')
+                        .where('deptSite.id = :deptId', { deptId: child.id })
                         .andWhere('(member.mb10 IS NULL OR member.mb10 = :emptyString)', { emptyString: '' });
                     child.members = await childMembersQb.getMany();
                 }
