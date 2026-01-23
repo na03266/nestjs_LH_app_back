@@ -19,7 +19,8 @@ export class NotificationService {
         if (isRead) {
             qb.andWhere('noti.isRead = :isRead', {isRead});
         }
-        qb.orderBy('noti.isRead','DESC');
+        qb.orderBy('noti.isRead', 'ASC')
+          .addOrderBy('noti.sentAt', 'DESC');
         const [rows, count] = await qb.getManyAndCount();
 
         return {
