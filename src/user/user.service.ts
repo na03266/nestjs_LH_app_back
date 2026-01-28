@@ -121,6 +121,12 @@ export class UserService {
      */
     async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
         const user = await this.findOne(id);
+
+        // 비밀번호가 포함되어 있다면 암호화 처리
+        if (updateUserDto.mbPassword) {
+            updateUserDto.mbPassword = mysql41PasswordHash(updateUserDto.mbPassword);
+        }
+
         Object.assign(user, updateUserDto);
         return await this.userRepository.save(user);
     }
