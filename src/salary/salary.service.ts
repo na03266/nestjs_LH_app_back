@@ -13,7 +13,7 @@ export class SalaryService {
 		private readonly salaryRepository: Repository<Salary>,
 		@InjectRepository(User)
 		private readonly userRepository: Repository<User>,
-	) {}
+	) { }
 
 	async findMe(mbNo: number) {
 		const me = await this.userRepository.findOne({ where: { mbNo } });
@@ -60,12 +60,22 @@ export class SalaryService {
 				title: string | null;
 			}>();
 
-		const data = rows.map((r) => ({
-			year: Number(r.year),
-			month: Number(r.month),
-			saId: Number(r.saId),
-			title: r.title ? r.title : null,
-		}));
+		const data = rows.map((r) => {
+			const year = Number(r.year);
+			const month = Number(r.month);
+			let formattedTitle = `${year}년 ${month}월 급여명세서`;
+
+			if (r.title && r.title.trim() !== '') {
+				formattedTitle = `${year}년 ${month}월 ${r.title.trim()}`;
+			}
+
+			return {
+				year,
+				month,
+				saId: Number(r.saId),
+				title: formattedTitle,
+			};
+		});
 
 		return {
 			years, // [2025, 2024, ...]

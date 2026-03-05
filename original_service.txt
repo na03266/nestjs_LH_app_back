@@ -1,0 +1,133 @@
+﻿import {Injectable} from '@nestjs/common';
+import {InjectRepository} from "@nestjs/typeorm";
+import {Department} from "./entities/department.entity";
+import {Repository} from "typeorm";
+import {User} from "../user/entities/user.entity";
+import {DepartmentDto} from "./dto/department.dto";
+
+@Injectable()
+export class DepartmentService {
+    constructor(
+        @InjectRepository(Department)
+        private readonly departmentRepository: Repository<Department>,
+        @InjectRepository(User)
+        private readonly memberRepository: Repository<User>
+    ) {
+    }
+
+
+    async findAll() {
+        const rootId = 1;
+
+        // 1. ?꾩껜 遺??+ parent + members留?議고쉶 (children? ??遺덈윭??
+        const depts = await this.departmentRepository.find({
+            relations: {
+                parent: true,
+                members: true,
+            },
+            order: {
+                depth: 'ASC',
+                id: 'ASC',
+            },
+        });
+        const dtoMap = new Map<number, DepartmentDto>();
+        for (const d of depts) {
+            dtoMap.set(d.id, {
+                id: d.id,
+                name: d.name,
+                depth: d.id === rootId ? 0 : d.depth,           // ??쒖씠?щ쭔 depth 0
+                isMb: (d.members?.length ?? 0) > 0,             // members ?덉쑝硫?true
+                children: [],
+            });
+        }
+
+        // 3. parent 湲곗??쇰줈 children ?곌껐 (?? parent媛 ??쒖씠?ъ씤 寃쎌슦??猷⑦듃濡?鍮쇨퀬 ?곌껐 X)
+        for (const d of depts) {
+            if (!d.parent) continue;                          // ??쒖씠??遺紐??놁쓬)??嫄대꼫?
+
+            // ??쒖씠?ъ쓽 吏곸냽 ?먯떇? 理쒖긽???덈꺼??蹂댁뿬???섎?濡?children???ｌ? ?딆쓬
+            if (d.parent.id === rootId) {
+                continue;
+            }
+
+            const parentDto = dtoMap.get(d.parent.id);
+            const childDto = dtoMap.get(d.id);
+
+            if (parentDto && childDto) {
+                parentDto.children.push(childDto);
+            }
+        }
+
+        // 4. 理쒖긽?꾩뿉 ?щ┫ ?몃뱶 ?좏깮
+        //    1) ??쒖씠??        //    2) ??쒖씠?ъ쓽 吏곸냽 ?먯떇??        const result: DepartmentDto[] = [];
+
+        for (const d of depts) {
+            if (d.id === rootId || d.parent?.id === rootId) {
+                const dto = dtoMap.get(d.id);
+                if (dto) {
+                    // ??쒖씠?щ뒗 children ??긽 []
+                    if (dto.id === rootId) {
+                        dto.children = [];
+                    }
+                    result.push(dto);
+                }
+            }
+        }
+
+        return {data: result};
+    }
+
+    async findOne(id: number) {
+        const result = await this.departmentRepository.findOne({
+            where: { id },
+            relations: {
+                members: true,
+                parent: { parent: true },
+                children: { members: true, children: true },
+            },
+        });
+
+        if (!result) return null;
+
+        const grandParentId = result.parent?.parent?.id ?? null;
+        const parentId = result.parent?.id ?? null;
+
+        // ??硫ㅻ쾭 ?대쫫???뺣젹 ?⑥닔 (鍮??대쫫? ?ㅻ줈)
+        const sortMembersByName = <T extends { mbName?: string | null; mbNo?: number }>(arr?: T[]) => {
+            if (!arr) return [];
+            return [...arr].sort((a, b) => {
+                const an = (a.mbName ?? '').trim();
+                const bn = (b.mbName ?? '').trim();
+
+                if (!an && !bn) return (a.mbNo ?? 0) - (b.mbNo ?? 0);
+                if (!an) return 1;  // 鍮??대쫫 ?ㅻ줈
+                if (!bn) return -1;
+
+                const cmp = an.localeCompare(bn, 'ko', { sensitivity: 'base', numeric: true });
+                return cmp !== 0 ? cmp : (a.mbNo ?? 0) - (b.mbNo ?? 0);
+            });
+        };
+
+        // ??蹂몄씤 遺??members ?뺣젹
+        const sortedMembers = sortMembersByName(result.members);
+
+        // ??children??members???뺣젹 (?꾩슂 ??children.children源뚯? ?ш?濡??뺤옣 媛??
+        const sortedChildren = id === 1
+            ? []
+            : (result.children ?? []).map((e) => ({
+                ...e,
+                members: sortMembersByName(e.members),
+                isMb: (e.members?.length ?? 0) !== 0,
+            }));
+
+        return {
+            ...result,
+            grandParentId,
+            parentId,
+            isMb: (result.members?.length ?? 0) > 0,
+            members: sortedMembers,     // ???뺣젹??硫ㅻ쾭濡???뼱?곌린
+            children: sortedChildren,   // ???뺣젹??children 諛섏쁺
+        };
+    }
+
+}

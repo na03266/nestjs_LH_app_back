@@ -1,13 +1,13 @@
-import {BadRequestException, Inject, Injectable, NestMiddleware, UnauthorizedException,} from '@nestjs/common';
-import {NextFunction, Request, Response} from 'express';
-import {JwtService} from '@nestjs/jwt';
-import {Cache, CACHE_MANAGER} from "@nestjs/cache-manager";
+import { BadRequestException, Inject, Injectable, NestMiddleware, UnauthorizedException, } from '@nestjs/common';
+import { NextFunction, Request, Response } from 'express';
+import { JwtService } from '@nestjs/jwt';
+import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 
 @Injectable()
 export class BearerTokenMiddleware implements NestMiddleware {
   constructor(private readonly jwtService: JwtService,
-              @Inject(CACHE_MANAGER)
-              private readonly cacheManager: Cache,) {
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,) {
   }
 
   async use(req: Request, res: Response, next: NextFunction) {
@@ -31,6 +31,10 @@ export class BearerTokenMiddleware implements NestMiddleware {
       return next();
     }
     const decodedPayload = this.jwtService.decode(token);
+
+    if (!decodedPayload || typeof decodedPayload !== 'object') {
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+    }
 
     if (decodedPayload.type !== 'refresh' && decodedPayload.type !== 'access') {
       throw new UnauthorizedException('토큰 포맷이 잘못됐습니다!');
