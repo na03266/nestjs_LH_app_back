@@ -8,7 +8,7 @@ export class NotificationReadLog {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
+    @Column('int')
     mbNo: number;
 
     @Column('uuid')

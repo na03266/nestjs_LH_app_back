@@ -6,7 +6,7 @@ export class NotificationLog {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'int', nullable: true })
     mbNo: number | null;
 
     @Column()
