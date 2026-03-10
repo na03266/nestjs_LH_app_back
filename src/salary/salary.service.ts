@@ -66,7 +66,7 @@ export class SalaryService {
 			let formattedTitle = `${year}년 ${month}월 급여명세서`;
 
 			if (r.title && r.title.trim() !== '') {
-				formattedTitle = `${year}년 ${month}월 ${r.title.trim()}`;
+				formattedTitle = `${year}년 ${month}월 급여명세서(${r.title.trim()})`;
 			}
 
 			return {

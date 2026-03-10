@@ -6,24 +6,24 @@ import { User } from '../user/entities/user.entity';
  * PHP 급여명세서 HTML을 그대로 TS 템플릿으로 옮긴 함수
  */
 export function renderSalaryHtml(salary: Salary, member: User): string {
-	const formatNumber = (value?: number | null, fractionDigits?: number) => {
-		if (value === null || value === undefined) return '';
-		if (fractionDigits !== undefined) {
-			return value.toLocaleString('ko-KR', {
-				minimumFractionDigits: fractionDigits,
-				maximumFractionDigits: fractionDigits,
-			});
-		}
-		return value.toLocaleString('ko-KR');
-	};
+  const formatNumber = (value?: number | null, fractionDigits?: number) => {
+    if (value === null || value === undefined) return '';
+    if (fractionDigits !== undefined) {
+      return value.toLocaleString('ko-KR', {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      });
+    }
+    return value.toLocaleString('ko-KR');
+  };
 
-	const today = new Date();
-	const todayStr =
-		`${today.getFullYear()}년 ` +
-		`${String(today.getMonth() + 1).padStart(2, '0')}월 ` +
-		`${String(today.getDate()).padStart(2, '0')}일`;
+  const today = new Date();
+  const todayStr =
+    `${today.getFullYear()}년 ` +
+    `${String(today.getMonth() + 1).padStart(2, '0')}월 ` +
+    `${String(today.getDate()).padStart(2, '0')}일`;
 
-	return `
+  return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -92,7 +92,7 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
 <div class="book">
   <div class="page">
     <div class="subpage">
-      <h1 style="font-size:24px;">${salary.sa_title ? salary.sa_title + ' (' + salary.sa_year + ' 년 ' + salary.sa_month + ' 월 급 여 명 세 서)' : '(' + salary.sa_year + ' 년 ' + salary.sa_month + ' 월) 급 여 명 세 서'}</h1>
+      <h1 style="font-size:24px;">${salary.sa_year}년 ${salary.sa_month}월 급여명세서${salary.sa_title ? '(' + salary.sa_title.trim() + ')' : ''}</h1>
 
       <table class="info2">
         <tr>
