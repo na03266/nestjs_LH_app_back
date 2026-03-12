@@ -408,7 +408,7 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
         </thead>
         <tbody>
           <tr>
-            <th scope="col" rowspan="18">기본급</th>
+            <th scope="col" rowspan="20">기본급</th>
             <th scope="col">기본급</th>
             <td>직원보수규정 및 임금 협약서에 준함</td>
           </tr>
