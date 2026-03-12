@@ -426,11 +426,11 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
           </tr>
           <tr>
             <th scope="col">근속수당</th>
-            <td>매월 1일자 기준 입사 2년차부터 매년 5,000원씩 가산</td>
+            <td>매월 1일자 기준 입사 2년차부터 매년 10,000원씩 가산</td>
           </tr>
           <tr>
             <th scope="col">연회장수당</th>
-            <td>2021년 임금 협약서에 준함</td>
+            <td>2025년 임금 협약서에 준함</td>
           </tr>
           <tr>
             <th scope="col">안전관리자선임수당</th>
@@ -442,7 +442,7 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
           </tr>
           <tr>
             <th scope="col">업무가중수당</th>
-            <td>2021년 임금 협약서에 준함</td>
+            <td>2021년, 2025년 임금 협약서에 준함</td>
           </tr>
           <tr>
             <th scope="col">본사가중수당</th>
@@ -455,6 +455,14 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
           <tr>
             <th scope="col">상여금</th>
             <td>월 130,000원</td>
+          </tr>
+          <tr>
+            <th scope="col">보전수당(2)</th>
+            <td>2024년 임금 협약서에 준함</td>
+          </tr>
+          <tr>
+            <th scope="col">기타수당</th>
+            <td>포상 상품권, 건강검진, 휴업수당, 출산전후휴가</td>
           </tr>
           <tr>
             <th scope="col">통상시급</th>
@@ -478,32 +486,32 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
           </tr>
           <tr>
             <th scope="col">복지포인트</th>
-            <td>당월 복지포인트 사용분</td>
+            <td>전년도 재직월수에 비례하여 일시 지급<br>※ 포인트 지급 시 지급된 금액에 대해 소득세 공제</td>
           </tr>
           <tr>
             <th scope="col" rowspan="5">공제내역</th>
             <th scope="col">국민연금</th>
-            <td>보수월액 × 4.5%</td>
+            <td>보수월액 × 4.75%</td>
           </tr>
           <tr>
             <th scope="col">건강보험</th>
-            <td>보수월액 × 3.495%</td>
+            <td>보수월액 × 3.595%</td>
           </tr>
           <tr>
             <th scope="col">장기요양보험</th>
-            <td>보수월액 × 3.495% × 12.27%</td>
+            <td>보수월액 × 3.595% × 13.14%</td>
           </tr>
           <tr>
             <th scope="col">고용보험</th>
-            <td>당월 급여 과세총액 × 0.8%</td>
+            <td>당월 급여 과세총액 × 0.9%</td>
           </tr>
           <tr>
             <th scope="col">복지포인트</th>
-            <td>지급내역의 복지포인트 금액</td>
+            <td>전년도 재직월수에 비례하여 일시 지급<br>※ 포인트 지급 시 지급된 금액에 대해 소득세 공제</td>
           </tr>
           <tr>
             <th scope="col">식대공제</th>
-            <td>본사, 경기지역본부 식대 공제</td>
+            <td>본사, 경기지역본부 식대</td>
           </tr>
         </tbody>
       </table>
