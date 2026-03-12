@@ -489,7 +489,7 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
             <td>전년도 재직월수에 비례하여 일시 지급<br>※ 포인트 지급 시 지급된 금액에 대해 소득세 공제</td>
           </tr>
           <tr>
-            <th scope="col" rowspan="5">공제내역</th>
+            <th scope="col" rowspan="6">공제내역</th>
             <th scope="col">국민연금</th>
             <td>보수월액 × 4.75%</td>
           </tr>
@@ -510,7 +510,7 @@ export function renderSalaryHtml(salary: Salary, member: User): string {
             <td>전년도 재직월수에 비례하여 일시 지급<br>※ 포인트 지급 시 지급된 금액에 대해 소득세 공제</td>
           </tr>
           <tr>
-            <th scope="col">식대공제</th>
+            <th scope="col">본사,경기지역본부 식대공제</th>
             <td>본사, 경기지역본부 식대</td>
           </tr>
         </tbody>
