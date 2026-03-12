@@ -1,15 +1,15 @@
-import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
-import {UpdateRoomDto} from './dto/update-room.dto';
-import {InjectRepository} from "@nestjs/typeorm";
-import {DataSource, In, IsNull, QueryRunner, Repository} from "typeorm";
-import {User} from "../../user/entities/user.entity";
-import {CreateChatRoomDto} from "./dto/create-chat-room.dto";
-import {ChatRoom} from "./entities/chat-room.entity";
-import {ChatCursor} from "../cursor/entities/chat-cursor.entity";
-import {ChatMessage, MessageType} from "../messages/entities/chat-message.entity";
-import {GetChatRoomsDto} from "./dto/get-chat-rooms.dto";
-import {CommonService} from "../../common/common.service";
-import {Department} from "../../department/entities/department.entity";
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { UpdateRoomDto } from './dto/update-room.dto';
+import { InjectRepository } from "@nestjs/typeorm";
+import { DataSource, In, IsNull, QueryRunner, Repository } from "typeorm";
+import { User } from "../../user/entities/user.entity";
+import { CreateChatRoomDto } from "./dto/create-chat-room.dto";
+import { ChatRoom } from "./entities/chat-room.entity";
+import { ChatCursor } from "../cursor/entities/chat-cursor.entity";
+import { ChatMessage, MessageType } from "../messages/entities/chat-message.entity";
+import { GetChatRoomsDto } from "./dto/get-chat-rooms.dto";
+import { CommonService } from "../../common/common.service";
+import { Department } from "../../department/entities/department.entity";
 
 @Injectable()
 export class ChatRoomService {
@@ -30,7 +30,7 @@ export class ChatRoomService {
     }
 
     async findUser(mbNo: number) {
-        const user = await this.userRepository.findOne({where: {mbNo}})
+        const user = await this.userRepository.findOne({ where: { mbNo } })
         if (!user) throw new NotFoundException("사용자를 찾을 수 없습니다.");
 
         return user;
@@ -134,13 +134,14 @@ export class ChatRoomService {
             .into(ChatMessage)
             .values({
                 room: roomId,
+                authorNo: 1,
                 type: MessageType.SYSTEM,
                 content: `'${createChatRoomDto.name}' 채팅방이 생성되었습니다.`,
             })
             .execute();
 
         const model = await qr.manager.findOne(ChatRoom, {
-            where: {id: roomId},
+            where: { id: roomId },
         });
 
         return model?.id;
@@ -148,29 +149,29 @@ export class ChatRoomService {
 
     async findMyRooms(mbNo: number, dto: GetChatRoomsDto) {
         const user = await this.findUser(mbNo);
-        const {name} = dto;
+        const { name } = dto;
 
         const qb = this.cursorRepository
             .createQueryBuilder('cursor')
             .leftJoinAndSelect('cursor.room', 'room')
             .where('cursor.deletedAt IS NULL')
-            .andWhere('cursor.mbNo = :mbNo', {mbNo: user.mbNo});
+            .andWhere('cursor.mbNo = :mbNo', { mbNo: user.mbNo });
 
         if (name) {
-            qb.andWhere('cursor.roomNickName LIKE :name', {name: `%${name}%`});
+            qb.andWhere('cursor.roomNickName LIKE :name', { name: `%${name}%` });
         }
 
-        const {nextCursor} = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
+        const { nextCursor } = await this.commonService.applyCursorPaginationParamsToQb(qb, dto);
         const [cursors, count] = await qb.getManyAndCount();
 
         if (cursors.length === 0) {
-            return {data: [], meta: {nextCursor, count}};
+            return { data: [], meta: { nextCursor, count } };
         }
 
         // 1) 방 로드
         const roomIds = cursors.map((c) => c.roomId);
         const rooms = await this.chatRoomRepository.find({
-            where: {id: In(roomIds)},
+            where: { id: In(roomIds) },
             relations: ['members', 'messages'],
         });
         const roomsById = new Map(rooms.map((r) => [r.id, r]));
@@ -180,7 +181,7 @@ export class ChatRoomService {
             .createQueryBuilder('c')
             .select('c.roomId', 'roomId')
             .addSelect('COUNT(*)', 'cnt')
-            .where('c.roomId IN (:...roomIds)', {roomIds})
+            .where('c.roomId IN (:...roomIds)', { roomIds })
             .andWhere('c.deletedAt IS NULL')
             .groupBy('c.roomId')
             .getRawMany();
@@ -222,7 +223,7 @@ export class ChatRoomService {
 
         return {
             data: fixedData,
-            meta: {nextCursor, count},
+            meta: { nextCursor, count },
         };
     }
 
@@ -245,7 +246,7 @@ export class ChatRoomService {
 
         // 2) 방 + 멤버만 조회 (messages는 굳이 안 끌고 옴)
         const room = await this.chatRoomRepository.findOne({
-            where: {id: roomId},
+            where: { id: roomId },
         });
 
         if (!room) {
@@ -294,7 +295,7 @@ export class ChatRoomService {
                 mb5: m.mb5 ?? '',
                 mb2: m.mb2 ?? '',
             }))
-            .sort((a, b) => a.name.localeCompare(b.name, 'ko', {sensitivity: 'base'}));
+            .sort((a, b) => a.name.localeCompare(b.name, 'ko', { sensitivity: 'base' }));
         return {
             ...summary,
             members,
@@ -314,7 +315,7 @@ export class ChatRoomService {
 
             // 1) 내가 이 방 멤버인지 확인 (cursor 기준)
             const myCursor = await cursorRepo.findOne({
-                where: {mbNo, roomId},
+                where: { mbNo, roomId },
             });
             if (!myCursor) {
                 throw new NotFoundException('사용자 정보를 찾을 수 없습니다.');
@@ -322,7 +323,7 @@ export class ChatRoomService {
 
             // 2) 방 + 기존 멤버 로드
             const room = await roomRepo.findOne({
-                where: {id: roomId},
+                where: { id: roomId },
                 relations: ['members'],
             });
             if (!room) {
@@ -336,7 +337,8 @@ export class ChatRoomService {
                     .insert()
                     .into(ChatMessage)
                     .values({
-                        room: {id: roomId},
+                        room: { id: roomId },
+                        authorNo: 1,
                         type: MessageType.SYSTEM,
                         content,
                     })
@@ -360,14 +362,14 @@ export class ChatRoomService {
             if (hasMemberNos || hasTeamNos) {
                 // 1) 팀 멤버 조회
                 const teams = await deptRepo.find({
-                    where: {id: In(dto.teamNos ?? [])},
+                    where: { id: In(dto.teamNos ?? []) },
                     relations: ['members'],
                 });
                 const teamMembers: User[] = teams.flatMap((t) => t.members ?? []);
 
                 // 2) 개별 멤버 조회
                 const explicitMembers = await userRepo.find({
-                    where: {mbNo: In(dto.memberNos ?? [])},
+                    where: { mbNo: In(dto.memberNos ?? []) },
                 });
 
                 if (explicitMembers.length !== (dto.memberNos?.length ?? 0)) {
@@ -395,7 +397,7 @@ export class ChatRoomService {
                 if (targetNos.length > 0) {
                     // 5) 기존 커서 조회(soft-deleted 포함) → 재입장/신규 구분
                     const existingCursors = await cursorRepo.find({
-                        where: {roomId, mbNo: In(targetNos)},
+                        where: { roomId, mbNo: In(targetNos) },
                         withDeleted: true, // soft-deleted 포함
                     });
 
@@ -434,10 +436,10 @@ export class ChatRoomService {
 
                     // 7) 재입장 복구 처리 + 시스템 메시지("재입장")
                     if (toRestoreNos.length > 0) {
-                        await cursorRepo.restore({roomId, mbNo: In(toRestoreNos)});
+                        await cursorRepo.restore({ roomId, mbNo: In(toRestoreNos) });
 
                         await cursorRepo.update(
-                            {roomId, mbNo: In(toRestoreNos)},
+                            { roomId, mbNo: In(toRestoreNos) },
                             {
                                 roomNickName: nicknameBase,
                                 lastReadId: '',
@@ -475,7 +477,7 @@ export class ChatRoomService {
 
             // C) 최종 방 정보 리턴
             const updated = await roomRepo.findOne({
-                where: {id: roomId},
+                where: { id: roomId },
                 relations: ['members'],
             });
 
@@ -492,12 +494,12 @@ export class ChatRoomService {
             const msgRepo = manager.getRepository(ChatMessage);
 
             const cursor = await cursorRepo.findOne({
-                where: {roomId: id, mbNo: user.mbNo},
+                where: { roomId: id, mbNo: user.mbNo },
             });
             if (!cursor) throw new NotFoundException('방을 찾을 수 없습니다.');
 
             // 1) 커서 soft delete
-            await cursorRepo.softDelete({roomId: cursor.roomId, mbNo: cursor.mbNo});
+            await cursorRepo.softDelete({ roomId: cursor.roomId, mbNo: cursor.mbNo });
 
             // 2) 관계에서도 제거(멤버 수/목록 즉시 반영)
             await roomRepo
@@ -513,7 +515,8 @@ export class ChatRoomService {
                 .insert()
                 .into(ChatMessage)
                 .values({
-                    room: {id},
+                    room: { id },
+                    authorNo: 1,
                     type: MessageType.SYSTEM,
                     content: `${displayName}님이 나갔습니다.`,
                 })
